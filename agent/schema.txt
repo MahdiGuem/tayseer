@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum SenderRole {
+  DEV
+  CLIENT
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  title           String
+  taxRate         Decimal       @default(0.00) @db.Decimal(5, 2)
+  status          ProjectStatus @default(DRAFT)
+  currency        String        @default("USD")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  clients         Client[]      // One project -> Multiple clients
+  milestones      Milestone[]
+  messages        Message[]
+  expenses        Expense[]
+  contracts       Contract[]
+}
+
+model Client {
+  id             String   @id @default(uuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  platform       String?  // e.g., 'Telegram'
+  
+  // The unique link for THIS specific client
+  clientToken    String   @unique @default(dbgenerated("encode(gen_random_bytes(24), 'hex')"))
+  
+  createdAt      DateTime @default(now())
+}
+
+model Milestone {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label       String
+  amount      Decimal  @db.Decimal(12, 2)
+  dueDate     DateTime?
+  isPaid      Boolean  @default(false)
+  order       Int      @default(0)
+}
+
+model Message {
+  id          String     @id @default(uuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Track exactly who sent the message
+  senderRole  SenderRole
+  senderName  String     // Stores the name of the client or "Dev"
+  
+  content     String     @db.Text
+  createdAt   DateTime   @default(now())
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  description String
+  amount      Decimal  @db.Decimal(12, 2)
+  category    String?
+  date        DateTime @default(now())
+}
+
+model Contract {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+}
