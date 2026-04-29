@@ -1,56 +1,89 @@
-'use client';
+'use client'
 
-import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, X } from 'lucide-react';
-import { projects } from '@/src/data/mocks';
-import { Badge } from '@/src/components/ui/Badge';
-import { formatCurrency } from '@/src/lib/utils/currency';
-import type { Invoice } from '@/src/types';
+import { useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MoreHorizontal, X, Loader2 } from 'lucide-react'
+import { Badge } from '@/src/components/ui/Badge'
+import { formatCurrency } from '@/src/lib/utils/currency'
+import { useProjects } from '@/src/hooks/useProjects'
+import { useCreateInvoice } from '@/src/hooks/useInvoices'
+import type { Invoice } from '@/src/types'
 
 interface InvoiceTableProps {
-  filter: 'all' | 'draft' | 'sent' | 'paid' | 'overdue';
-  onToast?: (message: string) => void;
+  filter: 'all' | 'draft' | 'sent' | 'paid' | 'overdue'
+  onToast?: (message: string) => void
 }
 
 export function InvoiceTable({ filter, onToast }: InvoiceTableProps) {
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const { projects, loading, refetch } = useProjects()
+  const { create: createInvoice, loading: creating } = useCreateInvoice()
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithProject | null>(null)
+  const [showNewInvoice, setShowNewInvoice] = useState(false)
+  const [newInvoiceProject, setNewInvoiceProject] = useState('')
+  const [newInvoiceAmount, setNewInvoiceAmount] = useState('')
+  const [newInvoiceDescription, setNewInvoiceDescription] = useState('')
 
-  const invoiceData = useMemo<Invoice[]>(() => {
-    return projects.flatMap((p) =>
-      p.milestones
-        .filter((m) => m.dueDate)
-        .map((m) => {
-          const status: Invoice['status'] = m.isPaid
-            ? 'paid'
-            : new Date(m.dueDate!) < new Date()
-            ? 'overdue'
-            : 'sent';
-          return {
-            id: m.id,
-            invoiceNumber: `INV-${m.id.split('-')[1]}`,
-            client: p.clients[0]?.name || 'Unknown',
-            clientEmail: p.clients[0]?.email || '',
-            amount: m.amount,
-            currency: p.currency,
-            status,
-            createdDate: p.createdAt.split('T')[0],
-            dueDate: m.dueDate || '',
-            description: m.label,
-          };
-        })
-    );
-  }, []);
+  const invoiceData = useMemo<InvoiceWithProject[]>(() => {
+    return projects.flatMap((p) => {
+      const clientName = p.clients[0]?.name || 'Unknown'
+      const clientEmail = p.clients[0]?.email || ''
+      
+      return p.invoices.map((inv) => {
+        const status = getInvoiceStatusFromStage(inv.stage, inv.dueDate)
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          client: clientName,
+          clientEmail: clientEmail,
+          amount: inv.amount,
+          currency: p.currency,
+          status,
+          createdDate: inv.createdAt.split('T')[0],
+          dueDate: inv.dueDate ? inv.dueDate.split('T')[0] : '',
+          description: inv.items.map(i => i.description).join(', ') || 'No description',
+          projectId: p.id,
+          stage: inv.stage
+        }
+      })
+    })
+  }, [projects])
 
   const filteredInvoices = useMemo(() => {
-    if (filter === 'all') return invoiceData;
-    return invoiceData.filter((inv) => inv.status === filter);
-  }, [invoiceData, filter]);
+    if (filter === 'all') return invoiceData
+    return invoiceData.filter((inv) => inv.status === filter)
+  }, [invoiceData, filter])
 
-  const handleSendInvoice = () => {
-    onToast?.('Invoice sent to client');
-    setSelectedInvoice(null);
-  };
+  const handleSendInvoice = async () => {
+    onToast?.('Invoice sent to client')
+    setSelectedInvoice(null)
+  }
+
+  const handleCreateInvoice = async () => {
+    if (!newInvoiceProject || !newInvoiceAmount || !newInvoiceDescription) return
+    
+    try {
+      await createInvoice(newInvoiceProject, {
+        items: [{ description: newInvoiceDescription, amount: parseFloat(newInvoiceAmount) }],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      setShowNewInvoice(false)
+      setNewInvoiceProject('')
+      setNewInvoiceAmount('')
+      setNewInvoiceDescription('')
+      refetch()
+      onToast?.('Invoice created successfully')
+    } catch (e) {
+      onToast?.('Failed to create invoice')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="animate-spin text-emerald-500" size={32} />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -68,33 +101,41 @@ export function InvoiceTable({ filter, onToast }: InvoiceTableProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-slate-300">
-              {filteredInvoices.map((invoice) => (
-                <tr
-                  key={invoice.id}
-                  onClick={() => setSelectedInvoice(invoice)}
-                  className="hover:bg-white/[0.02] transition-colors cursor-pointer"
-                >
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-slate-200">{invoice.invoiceNumber}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-slate-200">{invoice.client}</p>
-                    <p className="text-xs text-slate-500">{invoice.clientEmail}</p>
-                  </td>
-                  <td className="px-6 py-4 font-medium">
-                    {formatCurrency(invoice.amount, invoice.currency)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{invoice.dueDate}</td>
-                  <td className="px-6 py-4">
-                    <Badge status={invoice.status} />
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors">
-                      <MoreHorizontal size={16} />
-                    </button>
+              {filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                    No invoices found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredInvoices.map((invoice) => (
+                  <tr
+                    key={invoice.id}
+                    onClick={() => setSelectedInvoice(invoice)}
+                    className="hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-slate-200">{invoice.invoiceNumber}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-slate-200">{invoice.client}</p>
+                      <p className="text-xs text-slate-500">{invoice.clientEmail}</p>
+                    </td>
+                    <td className="px-6 py-4 font-medium">
+                      {formatCurrency(invoice.amount, invoice.currency)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{invoice.dueDate || 'No due date'}</td>
+                    <td className="px-6 py-4">
+                      <Badge status={invoice.status} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors">
+                        <MoreHorizontal size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -102,17 +143,26 @@ export function InvoiceTable({ filter, onToast }: InvoiceTableProps) {
 
       <AnimatePresence>
         {selectedInvoice && (
-          <InvoiceModal invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} onSend={handleSendInvoice} />
+          <InvoiceModal 
+            invoice={selectedInvoice} 
+            onClose={() => setSelectedInvoice(null)} 
+            onSend={handleSendInvoice} 
+          />
         )}
       </AnimatePresence>
     </>
-  );
+  )
+}
+
+interface InvoiceWithProject extends Invoice {
+  projectId: string
+  stage: number
 }
 
 interface InvoiceModalProps {
-  invoice: Invoice;
-  onClose: () => void;
-  onSend: () => void;
+  invoice: InvoiceWithProject
+  onClose: () => void
+  onSend: () => void
 }
 
 function InvoiceModal({ invoice, onClose, onSend }: InvoiceModalProps) {
@@ -154,7 +204,11 @@ function InvoiceModal({ invoice, onClose, onSend }: InvoiceModalProps) {
           </div>
           <div className="flex justify-between py-3 border-b border-white/5">
             <span className="text-slate-400">Due Date</span>
-            <span className="text-white">{invoice.dueDate}</span>
+            <span className="text-white">{invoice.dueDate || 'No due date'}</span>
+          </div>
+          <div className="flex justify-between py-3 border-b border-white/5">
+            <span className="text-slate-400">Stage</span>
+            <span className="text-white">{getStageLabel(invoice.stage)}</span>
           </div>
           <div className="flex justify-between py-3 border-b border-white/5">
             <span className="text-slate-400">Status</span>
@@ -178,5 +232,16 @@ function InvoiceModal({ invoice, onClose, onSend }: InvoiceModalProps) {
         </div>
       </motion.div>
     </motion.div>
-  );
+  )
+}
+
+function getInvoiceStatusFromStage(stage: number, dueDate?: string | null): 'draft' | 'sent' | 'paid' | 'overdue' {
+  if (stage === 4) return 'paid'
+  if (dueDate && new Date(dueDate) < new Date()) return 'overdue'
+  return stage >= 2 ? 'sent' : 'draft'
+}
+
+function getStageLabel(stage: number): string {
+  const labels = ['', 'Generated', 'Received', 'Funded', 'Released']
+  return labels[stage] || 'Unknown'
 }

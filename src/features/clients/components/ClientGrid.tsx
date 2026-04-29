@@ -1,38 +1,78 @@
-'use client';
+'use client'
 
-import { useMemo } from 'react';
-import { projects } from '@/src/data/mocks';
-import { TrustScore } from '@/src/components/ui/TrustScore';
-import { formatCurrency } from '@/src/lib/utils/currency';
-import type { Client } from '@/src/types';
+import { useMemo } from 'react'
+import { TrustScore } from '@/src/components/ui/TrustScore'
+import { formatCurrency } from '@/src/lib/utils/currency'
+import { useProjects } from '@/src/hooks/useProjects'
 
 interface ClientGridProps {
-  sortBy: 'trust' | 'payment' | 'revenue';
+  sortBy: 'trust' | 'payment' | 'revenue'
 }
 
-interface ClientWithStats extends Client {
-  projectTitle: string;
-  totalRevenue: number;
+interface ClientWithStats {
+  id: string
+  name: string
+  email: string | null
+  platform: string | null
+  clientToken: string
+  projectTitle: string
+  projectCurrency: string
+  totalRevenue: number
+  trustScore: number
+  avgPaymentDays: number
+  createdAt: string
 }
 
 export function ClientGrid({ sortBy }: ClientGridProps) {
+  const { projects, loading, refetch } = useProjects()
+
   const clients = useMemo(() => {
     const allClients: ClientWithStats[] = projects.flatMap((p) =>
-      p.clients.map((c) => ({
-        ...c,
-        projectTitle: p.title,
-        totalRevenue: p.milestones
+      p.clients.map((c) => {
+        const totalRevenue = p.milestones
           .filter((m) => m.isPaid)
-          .reduce((sum, m) => sum + m.amount, 0),
-      }))
-    );
+          .reduce((sum, m) => sum + m.amount, 0)
+        
+        return {
+          ...c,
+          projectTitle: p.title,
+          projectCurrency: p.currency,
+          totalRevenue,
+          // Default values for fields not in DB
+          trustScore: 80,
+          avgPaymentDays: 7
+        }
+      })
+    )
 
     return [...allClients].sort((a, b) => {
-      if (sortBy === 'trust') return (b.trustScore || 0) - (a.trustScore || 0);
-      if (sortBy === 'payment') return (a.avgPaymentDays || 0) - (b.avgPaymentDays || 0);
-      return (b.totalRevenue || 0) - (a.totalRevenue || 0);
-    });
-  }, [sortBy]);
+      if (sortBy === 'trust') return b.trustScore - a.trustScore
+      if (sortBy === 'payment') return a.avgPaymentDays - b.avgPaymentDays
+      return b.totalRevenue - a.totalRevenue
+    })
+  }, [projects, sortBy])
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="p-5 rounded-lg border border-white/5 bg-white/[0.02] animate-pulse">
+            <div className="h-12 w-12 rounded-full bg-slate-800 mb-4" />
+            <div className="h-4 w-32 bg-slate-800 rounded mb-2" />
+            <div className="h-3 w-24 bg-slate-800 rounded" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (clients.length === 0) {
+    return (
+      <div className="text-center py-12 text-slate-400">
+        No clients found. Create a project and add clients to see them here.
+      </div>
+    )
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -40,11 +80,11 @@ export function ClientGrid({ sortBy }: ClientGridProps) {
         <ClientCard key={client.id} client={client} />
       ))}
     </div>
-  );
+  )
 }
 
 interface ClientCardProps {
-  client: ClientWithStats;
+  client: ClientWithStats
 }
 
 function ClientCard({ client }: ClientCardProps) {
@@ -58,10 +98,10 @@ function ClientCard({ client }: ClientCardProps) {
           </div>
           <div>
             <h3 className="font-semibold text-slate-200">{client.name}</h3>
-            <p className="text-xs text-slate-500">{client.email}</p>
+            <p className="text-xs text-slate-500">{client.email || client.platform || 'No contact'}</p>
           </div>
         </div>
-        <TrustScore score={client.trustScore || 80} />
+        <TrustScore score={client.trustScore} />
       </div>
 
       {/* Stats */}
@@ -69,13 +109,13 @@ function ClientCard({ client }: ClientCardProps) {
         <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
           <p className="text-xs text-slate-500">Total Revenue</p>
           <p className="text-sm font-medium text-slate-200">
-            {formatCurrency(client.totalRevenue || 0, 'USD')}
+            {formatCurrency(client.totalRevenue, client.projectCurrency)}
           </p>
         </div>
         <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
           <p className="text-xs text-slate-500">Avg Payment</p>
           <p className="text-sm font-medium text-slate-200">
-            {client.avgPaymentDays || 7} days
+            {client.avgPaymentDays} days
           </p>
         </div>
       </div>
@@ -84,12 +124,17 @@ function ClientCard({ client }: ClientCardProps) {
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <span className="text-xs text-slate-500">{client.projectTitle}</span>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">Agent Tracking</span>
-          <div className="w-8 h-4 rounded-full bg-emerald-500 relative">
-            <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-white" />
-          </div>
+          <span className="text-xs text-slate-400">Link</span>
+          <button
+            className="text-xs text-emerald-400 hover:text-emerald-300"
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/client/${client.clientToken}`)
+            }}
+          >
+            Copy Link
+          </button>
         </div>
       </div>
     </div>
-  );
+  )
 }

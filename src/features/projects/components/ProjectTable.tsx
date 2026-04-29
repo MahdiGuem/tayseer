@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronRight,
   DollarSign,
@@ -12,33 +12,52 @@ import {
   RefreshCw,
   MessageCircle,
   X,
-} from 'lucide-react';
-import { projects } from '@/src/data/mocks';
-import { Badge } from '@/src/components/ui/Badge';
-import { formatCurrency } from '@/src/lib/utils/currency';
-import { cn } from '@/src/lib/utils/cn';
-import type { Project, ProjectStatus } from '@/src/types';
+} from 'lucide-react'
+import { Badge } from '@/src/components/ui/Badge'
+import { formatCurrency } from '@/src/lib/utils/currency'
+import { cn } from '@/src/lib/utils/cn'
+import { useProjects, useCreateProject } from '@/src/hooks/useProjects'
+import { useCreateMilestone, useMarkMilestonePaid } from '@/src/hooks/useMilestones'
 
 interface ProjectTableProps {
-  filter: ProjectStatus | 'all';
-  onToast?: (message: string) => void;
+  filter: 'all' | 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED'
+  onToast?: (message: string) => void
 }
 
 export function ProjectTable({ filter, onToast }: ProjectTableProps) {
-  const [expandedProject, setExpandedProject] = useState<string | null>(null);
-  const [showEvidence, setShowEvidence] = useState<string | null>(null);
-  const [releasing, setReleasing] = useState<string | null>(null);
+  const { projects, loading, refetch } = useProjects()
+  const [expandedProject, setExpandedProject] = useState<string | null>(null)
+  const [showEvidence, setShowEvidence] = useState<string | null>(null)
+  const [releasing, setReleasing] = useState<string | null>(null)
 
-  const filteredProjects =
-    filter === 'all' ? projects : projects.filter((p) => p.status === filter);
+  const filteredProjects = filter === 'all' 
+    ? projects 
+    : projects.filter((p) => p.status === filter)
 
-  const handleForceRelease = (projectId: string) => {
-    setReleasing(projectId);
+  const handleForceRelease = async (projectId: string) => {
+    setReleasing(projectId)
+    // Simulate release - in real app would call API
     setTimeout(() => {
-      setReleasing(null);
-      onToast?.('Funds released successfully!');
-    }, 2000);
-  };
+      setReleasing(null)
+      onToast?.('Funds released successfully!')
+    }, 2000)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="animate-spin text-emerald-500" size={32} />
+      </div>
+    )
+  }
+
+  if (filteredProjects.length === 0) {
+    return (
+      <div className="text-center py-12 text-slate-400">
+        No projects found
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] overflow-hidden">
@@ -69,23 +88,27 @@ export function ProjectTable({ filter, onToast }: ProjectTableProps) {
                 }
                 onForceRelease={handleForceRelease}
                 onShowEvidence={setShowEvidence}
+                onToast={onToast}
+                refetch={refetch}
               />
             ))}
           </tbody>
         </table>
       </div>
     </div>
-  );
+  )
 }
 
 interface ProjectRowProps {
-  project: Project;
-  isExpanded: boolean;
-  showEvidence: string | null;
-  isReleasing: boolean;
-  onToggle: () => void;
-  onForceRelease: (id: string) => void;
-  onShowEvidence: (id: string | null) => void;
+  project: Awaited<ReturnType<typeof useProjects>>['projects'][number]
+  isExpanded: boolean
+  showEvidence: string | null
+  isReleasing: boolean
+  onToggle: () => void
+  onForceRelease: (id: string) => void
+  onShowEvidence: (id: string | null) => void
+  onToast?: (message: string) => void
+  refetch: () => void
 }
 
 function ProjectRow({
@@ -96,11 +119,39 @@ function ProjectRow({
   onToggle,
   onForceRelease,
   onShowEvidence,
+  onToast,
+  refetch
 }: ProjectRowProps) {
-  const paidMilestones = project.milestones.filter((m) => m.isPaid).length;
-  const totalMilestones = project.milestones.length;
-  const progress = totalMilestones > 0 ? Math.round((paidMilestones / totalMilestones) * 100) : 0;
-  const totalValue = project.milestones.reduce((sum, m) => sum + m.amount, 0);
+  const { create: createMilestone, loading: creatingMilestone } = useCreateMilestone()
+  const { markPaid } = useMarkMilestonePaid()
+  const [newMilestoneLabel, setNewMilestoneLabel] = useState('')
+  const [showAddMilestone, setShowAddMilestone] = useState(false)
+
+  const paidMilestones = project.milestones.filter((m) => m.isPaid).length
+  const totalMilestones = project.milestones.length
+  const progress = totalMilestones > 0 ? Math.round((paidMilestones / totalMilestones) * 100) : 0
+  const totalValue = project.milestones.reduce((sum, m) => sum + m.amount, 0)
+
+  const handleAddMilestone = async () => {
+    if (!newMilestoneLabel.trim()) return
+    await createMilestone(project.id, { label: newMilestoneLabel, amount: 0 })
+    setNewMilestoneLabel('')
+    setShowAddMilestone(false)
+    refetch()
+    onToast?.('Milestone added')
+  }
+
+  const handleTogglePaid = async (milestoneId: string, isPaid: boolean) => {
+    await markPaid(milestoneId, !isPaid)
+    refetch()
+  }
+
+  const statusMap: Record<string, 'active' | 'completed' | 'pending' | 'on_hold'> = {
+    DRAFT: 'pending',
+    ACTIVE: 'active',
+    COMPLETED: 'completed',
+    ARCHIVED: 'on_hold'
+  }
 
   return (
     <>
@@ -109,7 +160,7 @@ function ProjectRow({
           <div>
             <p className="font-medium text-slate-200">{project.title}</p>
             <p className="text-xs text-slate-500">
-              {project.contracts[0]?.content.substring(0, 50)}...
+              {project.contracts?.[0]?.content?.substring(0, 50) || 'No contract'}...
             </p>
           </div>
         </td>
@@ -119,7 +170,7 @@ function ProjectRow({
               {project.clients[0]?.name?.charAt(0) || '?'}
             </div>
             <div>
-              <p className="text-sm text-slate-200">{project.clients[0]?.name || 'Unknown'}</p>
+              <p className="text-sm text-slate-200">{project.clients[0]?.name || 'No client'}</p>
               <p className="text-xs text-slate-500">{project.clients[0]?.email || ''}</p>
             </div>
           </div>
@@ -136,7 +187,7 @@ function ProjectRow({
           </div>
         </td>
         <td className="px-6 py-4">
-          <Badge status={project.status.toLowerCase()} />
+          <Badge status={statusMap[project.status] || 'pending'} />
         </td>
         <td className="px-6 py-4 font-medium">{formatCurrency(totalValue, project.currency)}</td>
         <td className="px-6 py-4 text-right">
@@ -182,25 +233,79 @@ function ProjectRow({
                 milestones={project.milestones}
                 showEvidence={showEvidence}
                 onShowEvidence={onShowEvidence}
+                onTogglePaid={handleTogglePaid}
+                showAddMilestone={showAddMilestone}
+                setShowAddMilestone={setShowAddMilestone}
+                newMilestoneLabel={newMilestoneLabel}
+                setNewMilestoneLabel={setNewMilestoneLabel}
+                onAddMilestone={handleAddMilestone}
+                isAdding={creatingMilestone}
               />
             </td>
           </motion.tr>
         )}
       </AnimatePresence>
     </>
-  );
+  )
 }
 
 interface MilestoneListProps {
-  milestones: Project['milestones'];
-  showEvidence: string | null;
-  onShowEvidence: (id: string | null) => void;
+  milestones: Awaited<ReturnType<typeof useProjects>>['projects'][number]['milestones']
+  showEvidence: string | null
+  onShowEvidence: (id: string | null) => void
+  onTogglePaid: (id: string, isPaid: boolean) => void
+  showAddMilestone: boolean
+  setShowAddMilestone: (v: boolean) => void
+  newMilestoneLabel: string
+  setNewMilestoneLabel: (v: string) => void
+  onAddMilestone: () => void
+  isAdding: boolean
 }
 
-function MilestoneList({ milestones, showEvidence, onShowEvidence }: MilestoneListProps) {
+function MilestoneList({ 
+  milestones, 
+  showEvidence, 
+  onShowEvidence,
+  onTogglePaid,
+  showAddMilestone,
+  setShowAddMilestone,
+  newMilestoneLabel,
+  setNewMilestoneLabel,
+  onAddMilestone,
+  isAdding
+}: MilestoneListProps) {
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-medium text-slate-300 mb-3">Milestones / معالم المشروع</h4>
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium text-slate-300">Milestones / معالم المشروع</h4>
+        <button
+          onClick={() => setShowAddMilestone(!showAddMilestone)}
+          className="text-xs text-emerald-400 hover:text-emerald-300"
+        >
+          + Add Milestone
+        </button>
+      </div>
+      
+      {showAddMilestone && (
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            value={newMilestoneLabel}
+            onChange={(e) => setNewMilestoneLabel(e.target.value)}
+            placeholder="Milestone name"
+            className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder:text-slate-500"
+            onKeyDown={(e) => e.key === 'Enter' && onAddMilestone()}
+          />
+          <button
+            onClick={onAddMilestone}
+            disabled={isAdding}
+            className="px-3 py-2 bg-emerald-500 text-black text-sm rounded hover:bg-emerald-400 disabled:opacity-50"
+          >
+            {isAdding ? 'Adding...' : 'Add'}
+          </button>
+        </div>
+      )}
+      
       {milestones.map((milestone) => (
         <MilestoneItem
           key={milestone.id}
@@ -209,78 +314,64 @@ function MilestoneList({ milestones, showEvidence, onShowEvidence }: MilestoneLi
           onToggleEvidence={() =>
             onShowEvidence(showEvidence === milestone.id ? null : milestone.id)
           }
+          onTogglePaid={onTogglePaid}
         />
       ))}
     </div>
-  );
+  )
 }
 
 interface MilestoneItemProps {
-  milestone: Project['milestones'][0];
-  showEvidence: boolean;
-  onToggleEvidence: () => void;
+  milestone: Awaited<ReturnType<typeof useProjects>>['projects'][number]['milestones'][number]
+  showEvidence: boolean
+  onToggleEvidence: () => void
+  onTogglePaid: (id: string, isPaid: boolean) => void
 }
 
-function MilestoneItem({ milestone, showEvidence, onToggleEvidence }: MilestoneItemProps) {
-  const status = milestone.status || (milestone.isPaid ? 'completed' : 'pending');
+function MilestoneItem({ milestone, showEvidence, onToggleEvidence, onTogglePaid }: MilestoneItemProps) {
+  const status = milestone.isPaid ? 'completed' : 'pending'
+  
+  const dueDateStr = milestone.dueDate 
+    ? new Date(milestone.dueDate).toLocaleDateString() 
+    : 'No due date'
 
   return (
     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div
+          <button
+            onClick={() => onTogglePaid(milestone.id, milestone.isPaid)}
             className={cn(
-              'h-8 w-8 rounded-lg flex items-center justify-center',
-              status === 'completed'
-                ? 'bg-emerald-500/10 text-emerald-400'
-                : status === 'in_review'
-                ? 'bg-amber-500/10 text-amber-400'
-                : 'bg-white/5 text-slate-400'
+              'h-8 w-8 rounded-lg flex items-center justify-center transition-colors',
+              milestone.isPaid
+                ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                : 'bg-white/5 text-slate-400 hover:bg-white/10 cursor-pointer'
             )}
           >
-            {status === 'completed' ? <CheckCircle size={16} /> : <Clock size={16} />}
-          </div>
+            {milestone.isPaid ? <CheckCircle size={16} /> : <Clock size={16} />}
+          </button>
           <div>
             <p className="text-sm text-slate-200">{milestone.label}</p>
-            <p className="text-xs text-slate-500">Due: {milestone.targetDate || milestone.dueDate}</p>
+            <p className="text-xs text-slate-500">Due: {dueDateStr}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-20 bg-white/5 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 rounded-full"
-                style={{ width: `${milestone.progress || 0}%` }}
-              />
-            </div>
-            <span className="text-xs text-slate-400">{milestone.progress || 0}%</span>
-          </div>
-          {milestone.evidence && (
-            <button
-              onClick={onToggleEvidence}
-              className="px-2 py-1 rounded-lg bg-white/5 text-slate-300 text-xs hover:bg-white/10 transition-colors"
-            >
-              View Proof
-            </button>
-          )}
+          <span className="text-sm font-medium text-white">
+            {formatCurrency(milestone.amount, 'USD')}
+          </span>
         </div>
       </div>
-      <AnimatePresence>
-        {showEvidence && milestone.evidence && (
-          <EvidencePanel evidence={milestone.evidence} type={milestone.evidenceType} />
-        )}
-      </AnimatePresence>
     </div>
-  );
+  )
 }
 
 interface EvidencePanelProps {
-  evidence: string;
-  type?: 'chat' | 'commit' | 'file';
+  evidence: string
+  type?: 'chat' | 'commit' | 'file'
 }
 
 function EvidencePanel({ evidence, type }: EvidencePanelProps) {
-  const Icon = type === 'chat' ? MessageCircle : type === 'commit' ? RefreshCw : FileText;
+  const Icon = type === 'chat' ? MessageCircle : type === 'commit' ? RefreshCw : FileText
 
   return (
     <motion.div
@@ -299,5 +390,5 @@ function EvidencePanel({ evidence, type }: EvidencePanelProps) {
         </div>
       </div>
     </motion.div>
-  );
+  )
 }

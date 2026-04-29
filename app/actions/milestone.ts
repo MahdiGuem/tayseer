@@ -8,7 +8,12 @@ export async function getMilestones(projectId: string) {
     where: { projectId },
     orderBy: { order: 'asc' }
   })
-  return milestones.map(m => ({ ...m, amount: Number(m.amount) }))
+  return milestones.map((m: Record<string, unknown>) => ({
+    ...m,
+    amount: Number(m.amount),
+    dueDate: m.dueDate ? String(m.dueDate) : null,
+    createdAt: m.createdAt ? String(m.createdAt) : new Date().toISOString()
+  }))
 }
 
 export async function createMilestone(projectId: string, data: { label: string; amount: number; dueDate?: string }) {
@@ -27,7 +32,16 @@ export async function createMilestone(projectId: string, data: { label: string; 
     }
   })
   revalidatePath('/')
-  return { ...milestone, amount: Number(milestone.amount) }
+  return {
+    id: milestone.id,
+    projectId: milestone.projectId,
+    label: milestone.label,
+    amount: Number(milestone.amount),
+    dueDate: milestone.dueDate?.toISOString() || null,
+    isPaid: milestone.isPaid,
+    order: milestone.order,
+    createdAt: new Date().toISOString()
+  }
 }
 
 export async function updateMilestone(id: string, data: { label?: string; amount?: number; dueDate?: string; isPaid?: boolean; order?: number }) {
@@ -43,7 +57,16 @@ export async function updateMilestone(id: string, data: { label?: string; amount
     data: updateData
   })
   revalidatePath('/')
-  return milestone
+  return {
+    id: milestone.id,
+    projectId: milestone.projectId,
+    label: milestone.label,
+    amount: Number(milestone.amount),
+    dueDate: milestone.dueDate?.toISOString() || null,
+    isPaid: milestone.isPaid,
+    order: milestone.order,
+    createdAt: new Date().toISOString()
+  }
 }
 
 export async function deleteMilestone(id: string) {
@@ -57,5 +80,14 @@ export async function markMilestonePaid(id: string, isPaid: boolean) {
     data: { isPaid }
   })
   revalidatePath('/')
-  return milestone
+  return {
+    id: milestone.id,
+    projectId: milestone.projectId,
+    label: milestone.label,
+    amount: Number(milestone.amount),
+    dueDate: milestone.dueDate?.toISOString() || null,
+    isPaid: milestone.isPaid,
+    order: milestone.order,
+    createdAt: new Date().toISOString()
+  }
 }

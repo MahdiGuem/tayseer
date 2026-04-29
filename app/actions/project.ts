@@ -8,13 +8,65 @@ export async function getProjects() {
     include: {
       clients: true,
       milestones: { orderBy: { order: 'asc' } },
+      messages: { orderBy: { createdAt: 'asc' } },
+      invoices: {
+        include: { items: true },
+        orderBy: { createdAt: 'desc' }
+      },
+      contracts: { orderBy: { createdAt: 'desc' }, take: 1 },
+      expenses: true,
+      agentLogs: { orderBy: { createdAt: 'desc' }, take: 20 },
       _count: { select: { messages: true, invoices: true } }
     },
     orderBy: { createdAt: 'desc' }
   })
   return projects.map(p => ({
     ...p,
-    taxRate: Number(p.taxRate)
+    taxRate: Number(p.taxRate),
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+    milestones: p.milestones.map((m) => ({
+      id: m.id,
+      projectId: m.projectId,
+      label: m.label,
+      amount: Number(m.amount),
+      dueDate: m.dueDate?.toISOString() || null,
+      isPaid: m.isPaid,
+      order: m.order,
+      createdAt: new Date().toISOString()
+    })),
+    messages: p.messages.map(m => ({
+      ...m,
+      createdAt: m.createdAt.toISOString()
+    })),
+    invoices: p.invoices.map(inv => ({
+      ...inv,
+      amount: Number(inv.amount),
+      dueDate: inv.dueDate?.toISOString() || null,
+      createdAt: inv.createdAt.toISOString(),
+      items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
+    })),
+    expenses: p.expenses.map((e) => ({
+      id: e.id,
+      projectId: e.projectId,
+      description: e.description,
+      amount: Number(e.amount),
+      category: e.category,
+      date: e.date.toISOString(),
+      createdAt: new Date().toISOString()
+    })),
+    agentLogs: p.agentLogs.map(l => ({
+      ...l,
+      createdAt: l.createdAt.toISOString()
+    })),
+    clients: p.clients.map(c => ({
+      ...c,
+      createdAt: c.createdAt.toISOString()
+    })),
+    contracts: p.contracts.map(c => ({
+      ...c,
+      createdAt: c.createdAt.toISOString()
+    }))
   }))
 }
 
@@ -38,13 +90,50 @@ export async function getProject(id: string) {
   return {
     ...project,
     taxRate: Number(project.taxRate),
-    milestones: project.milestones.map(m => ({ ...m, amount: Number(m.amount) })),
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+    milestones: project.milestones.map(m => ({
+      id: m.id,
+      projectId: m.projectId,
+      label: m.label,
+      amount: Number(m.amount),
+      dueDate: m.dueDate?.toISOString() || null,
+      isPaid: m.isPaid,
+      order: m.order,
+      createdAt: new Date().toISOString()
+    })),
+    messages: project.messages.map(m => ({
+      ...m,
+      createdAt: m.createdAt.toISOString()
+    })),
     invoices: project.invoices.map(inv => ({
       ...inv,
       amount: Number(inv.amount),
+      dueDate: inv.dueDate?.toISOString() || null,
+      createdAt: inv.createdAt.toISOString(),
       items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
     })),
-    expenses: project.expenses.map(e => ({ ...e, amount: Number(e.amount) }))
+    expenses: project.expenses.map(e => ({
+      id: e.id,
+      projectId: e.projectId,
+      description: e.description,
+      amount: Number(e.amount),
+      category: e.category,
+      date: e.date.toISOString(),
+      createdAt: new Date().toISOString()
+    })),
+    agentLogs: project.agentLogs.map(l => ({
+      ...l,
+      createdAt: l.createdAt.toISOString()
+    })),
+    contracts: project.contracts.map(c => ({
+      ...c,
+      createdAt: c.createdAt.toISOString()
+    })),
+    clients: project.clients.map(c => ({
+      ...c,
+      createdAt: c.createdAt.toISOString()
+    }))
   }
 }
 
@@ -57,7 +146,12 @@ export async function createProject(data: { title: string; taxRate?: number; cur
     }
   })
   revalidatePath('/')
-  return { ...project, taxRate: Number(project.taxRate) }
+  return {
+    ...project,
+    taxRate: Number(project.taxRate),
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString()
+  }
 }
 
 export async function updateProject(id: string, data: { title?: string; taxRate?: number; currency?: string; status?: string }) {
@@ -72,7 +166,12 @@ export async function updateProject(id: string, data: { title?: string; taxRate?
     data: updateData
   })
   revalidatePath('/')
-  return { ...project, taxRate: Number(project.taxRate) }
+  return {
+    ...project,
+    taxRate: Number(project.taxRate),
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString()
+  }
 }
 
 export async function deleteProject(id: string) {
