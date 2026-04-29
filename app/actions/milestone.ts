@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function getMilestones(projectId: string) {
-  return await prisma.milestone.findMany({
+  const milestones = await prisma.milestone.findMany({
     where: { projectId },
     orderBy: { order: 'asc' }
   })
+  return milestones.map(m => ({ ...m, amount: Number(m.amount) }))
 }
 
 export async function createMilestone(projectId: string, data: { label: string; amount: number; dueDate?: string }) {
@@ -26,7 +27,7 @@ export async function createMilestone(projectId: string, data: { label: string; 
     }
   })
   revalidatePath('/')
-  return milestone
+  return { ...milestone, amount: Number(milestone.amount) }
 }
 
 export async function updateMilestone(id: string, data: { label?: string; amount?: number; dueDate?: string; isPaid?: boolean; order?: number }) {

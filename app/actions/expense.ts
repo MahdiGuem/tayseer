@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function getExpenses(projectId?: string) {
-  return await prisma.expense.findMany({
+  const expenses = await prisma.expense.findMany({
     where: projectId ? { projectId } : undefined,
     orderBy: { date: 'desc' }
   })
+  return expenses.map(e => ({ ...e, amount: Number(e.amount) }))
 }
 
 export async function createExpense(data: {
@@ -37,7 +38,7 @@ export async function createExpense(data: {
   })
 
   revalidatePath('/')
-  return expense
+  return { ...expense, amount: Number(expense.amount) }
 }
 
 export async function deleteExpense(id: string) {

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function getProjects() {
-  return await prisma.project.findMany({
+  const projects = await prisma.project.findMany({
     include: {
       clients: true,
       milestones: { orderBy: { order: 'asc' } },
@@ -12,10 +12,14 @@ export async function getProjects() {
     },
     orderBy: { createdAt: 'desc' }
   })
+  return projects.map(p => ({
+    ...p,
+    taxRate: Number(p.taxRate)
+  }))
 }
 
 export async function getProject(id: string) {
-  return await prisma.project.findUnique({
+  const project = await prisma.project.findUnique({
     where: { id },
     include: {
       clients: true,
@@ -30,6 +34,18 @@ export async function getProject(id: string) {
       agentLogs: { orderBy: { createdAt: 'desc' }, take: 50 }
     }
   })
+  if (!project) return null
+  return {
+    ...project,
+    taxRate: Number(project.taxRate),
+    milestones: project.milestones.map(m => ({ ...m, amount: Number(m.amount) })),
+    invoices: project.invoices.map(inv => ({
+      ...inv,
+      amount: Number(inv.amount),
+      items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
+    })),
+    expenses: project.expenses.map(e => ({ ...e, amount: Number(e.amount) }))
+  }
 }
 
 export async function createProject(data: { title: string; taxRate?: number; currency?: string }) {
@@ -41,7 +57,7 @@ export async function createProject(data: { title: string; taxRate?: number; cur
     }
   })
   revalidatePath('/')
-  return project
+  return { ...project, taxRate: Number(project.taxRate) }
 }
 
 export async function updateProject(id: string, data: { title?: string; taxRate?: number; currency?: string; status?: string }) {
@@ -56,7 +72,7 @@ export async function updateProject(id: string, data: { title?: string; taxRate?
     data: updateData
   })
   revalidatePath('/')
-  return project
+  return { ...project, taxRate: Number(project.taxRate) }
 }
 
 export async function deleteProject(id: string) {

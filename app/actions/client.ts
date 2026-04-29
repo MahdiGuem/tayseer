@@ -22,7 +22,7 @@ export async function deleteClient(id: string) {
 }
 
 export async function getClientByToken(token: string) {
-  return await prisma.client.findUnique({
+  const client = await prisma.client.findUnique({
     where: { clientToken: token },
     include: {
       project: {
@@ -38,4 +38,18 @@ export async function getClientByToken(token: string) {
       }
     }
   })
+  if (!client?.project) return client
+  return {
+    ...client,
+    project: {
+      ...client.project,
+      taxRate: Number(client.project.taxRate),
+      milestones: client.project.milestones.map(m => ({ ...m, amount: Number(m.amount) })),
+      invoices: client.project.invoices.map(inv => ({
+        ...inv,
+        amount: Number(inv.amount),
+        items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
+      }))
+    }
+  }
 }

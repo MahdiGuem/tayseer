@@ -4,11 +4,16 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function getInvoices(projectId: string) {
-  return await prisma.invoice.findMany({
+  const invoices = await prisma.invoice.findMany({
     where: { projectId },
     include: { items: true },
     orderBy: { createdAt: 'desc' }
   })
+  return invoices.map(inv => ({
+    ...inv,
+    amount: Number(inv.amount),
+    items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
+  }))
 }
 
 export async function createInvoice(projectId: string, data: {
@@ -49,7 +54,11 @@ export async function createInvoice(projectId: string, data: {
   })
 
   revalidatePath('/')
-  return invoice
+  return {
+    ...invoice,
+    amount: Number(invoice.amount),
+    items: invoice.items.map(item => ({ ...item, amount: Number(item.amount) }))
+  }
 }
 
 export async function updateInvoiceStage(id: string, stage: number) {
@@ -70,7 +79,11 @@ export async function updateInvoiceStage(id: string, stage: number) {
   })
 
   revalidatePath('/')
-  return invoice
+  return {
+    ...invoice,
+    amount: Number(invoice.amount),
+    items: invoice.items.map(item => ({ ...item, amount: Number(item.amount) }))
+  }
 }
 
 export async function deleteInvoice(id: string) {
