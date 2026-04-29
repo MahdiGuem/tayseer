@@ -1,17 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ProjectTable } from '@/src/features/projects/components/ProjectTable'
-import { Breadcrumb } from '@/src/components/ui/Breadcrumb'
 import { useProjectFilter } from '@/src/features/projects/hooks/useProjectFilter'
 import { useToast } from '@/src/hooks/useToast'
 import { useCreateProject, useProjects } from '@/src/hooks/useProjects'
 import type { ProjectStatus } from '@/src/types'
 
 export default function ProjectsPage() {
-  const { filter, setFilter, filteredProjects } = useProjectFilter()
+  const { filter, setFilter } = useProjectFilter()
   const { addToast } = useToast()
   const { refetch } = useProjects()
   const { create, loading: creating } = useCreateProject()
@@ -19,7 +18,7 @@ export default function ProjectsPage() {
   const [newProjectName, setNewProjectName] = useState('')
 
   const filterOptions: { value: ProjectStatus | 'all'; label: string }[] = [
-    { value: 'all', label: 'All Projects' },
+    { value: 'all', label: 'All' },
     { value: 'DRAFT', label: 'Draft' },
     { value: 'ACTIVE', label: 'Active' },
     { value: 'COMPLETED', label: 'Completed' },
@@ -46,12 +45,10 @@ export default function ProjectsPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="w-full max-w-7xl"
     >
-      <Breadcrumb items={[{ label: 'Home' }, { label: 'Projects' }]} />
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-white">Projects</h1>
           <p className="text-sm text-slate-400 mt-1">Manage milestones and approve deliverables</p>
@@ -78,8 +75,10 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Table */}
-      <ProjectTable filter={filter} onToast={(msg) => addToast(msg, 'success')} />
+      {/* Projects Table - Fill Page */}
+      <div className="h-[calc(100vh-240px)] min-h-[500px]">
+        <ProjectTable filter={filter} onToast={(msg) => addToast(msg, 'success')} />
+      </div>
 
       {/* New Project Modal */}
       {showNewProject && (

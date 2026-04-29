@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { TrendingUp, TrendingDown, DollarSign, FolderOpen, Clock, Activity } from 'lucide-react'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/src/lib/utils/cn'
 import { useProjects } from '@/src/hooks/useProjects'
 import { useExpenses } from '@/src/hooks/useActivity'
@@ -18,7 +18,6 @@ export function BusinessPulse() {
     }, 0)
 
     const activeProjects = projects.filter(p => p.status === 'ACTIVE').length
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
     const pendingInvoices = projects.reduce((sum, p) => {
       return sum + p.invoices.filter(i => i.stage < 4).length
     }, 0)
@@ -33,7 +32,7 @@ export function BusinessPulse() {
     return [
       {
         id: 'revenue',
-        label: 'Total Revenue',
+        label: 'Revenue',
         value: formatCurrency(totalRevenue, 'USD'),
         change: '+12.5%',
         trend: 'up' as const,
@@ -49,32 +48,31 @@ export function BusinessPulse() {
       },
       {
         id: 'projects',
-        label: 'Active Projects',
+        label: 'Projects',
         value: activeProjects.toString(),
-        change: projects.length > 0 ? '+' : '0',
+        change: projects.length > 0 ? `${projects.length} total` : '0',
         trend: activeProjects > 0 ? 'up' as const : 'neutral' as const,
-        sublabel: 'of ' + projects.length + ' total'
+        sublabel: 'Active'
       },
       {
         id: 'invoices',
-        label: 'Pending Invoices',
+        label: 'Invoices',
         value: pendingInvoices.toString(),
-        change: pendingInvoices > 0 ? 'Action needed' : 'All clear',
+        change: pendingInvoices > 0 ? 'Pending' : 'Clear',
         trend: pendingInvoices > 0 ? 'down' as const : 'up' as const,
-        sublabel: 'Awaiting payment'
+        sublabel: 'Awaiting'
       }
     ]
   }, [projects, expenses])
 
   if (loading) {
     return (
-      <div className="p-6 rounded-lg border border-white/5 bg-white/[0.02]">
-        <h2 className="text-lg font-semibold text-white mb-4">Business Pulse</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="p-4 rounded-lg border border-white/5 bg-white/[0.02]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="p-4 rounded-lg bg-white/[0.02] border border-white/5 animate-pulse">
-              <div className="h-3 w-20 bg-slate-800 rounded mb-2" />
-              <div className="h-6 w-16 bg-slate-800 rounded" />
+            <div key={i} className="p-3 rounded-lg bg-white/[0.02] border border-white/5 animate-pulse">
+              <div className="h-2 w-16 bg-slate-800 rounded mb-2" />
+              <div className="h-5 w-12 bg-slate-800 rounded" />
             </div>
           ))}
         </div>
@@ -83,40 +81,38 @@ export function BusinessPulse() {
   }
 
   return (
-    <div className="p-6 rounded-lg border border-white/5 bg-white/[0.02]">
-      <h2 className="text-lg font-semibold text-white mb-4">Business Pulse</h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="p-4 rounded-lg border border-white/5 bg-white/[0.02]">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {metrics.map((metric) => (
           <div
             key={metric.id}
-            className="p-4 rounded-lg bg-white/[0.02] border border-white/5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+            className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-emerald-500/30 transition-all group cursor-pointer"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-500 uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">
                 {metric.label}
               </span>
               <span
                 className={cn(
-                  'text-xs flex items-center gap-1',
+                  'text-[10px] flex items-center gap-0.5',
                   metric.trend === 'up' && 'text-emerald-400',
                   metric.trend === 'down' && 'text-rose-400',
                   metric.trend === 'neutral' && 'text-slate-400'
                 )}
               >
                 {metric.trend === 'up' ? (
-                  <TrendingUp size={12} />
+                  <TrendingUp size={10} />
                 ) : metric.trend === 'down' ? (
-                  <TrendingDown size={12} />
+                  <TrendingDown size={10} />
                 ) : (
                   '→'
                 )}
                 {metric.change}
               </span>
             </div>
-            <p className="text-2xl font-semibold text-white group-hover:text-emerald-400 transition-colors">
+            <p className="text-xl font-semibold text-white group-hover:text-emerald-400 transition-colors">
               {metric.value}
             </p>
-            <p className="text-xs text-slate-500 mt-1">{metric.sublabel}</p>
           </div>
         ))}
       </div>

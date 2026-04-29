@@ -1,15 +1,14 @@
-'use client';
+'use client'
 
-import { Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { ClientGrid } from '@/src/features/clients/components/ClientGrid';
-import { Breadcrumb } from '@/src/components/ui/Breadcrumb';
-import { useClientSort } from '@/src/features/clients/hooks/useClientSort';
-import { useToast } from '@/src/hooks/useToast';
+import { Plus } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ClientGrid } from '@/src/features/clients/components/ClientGrid'
+import { useClientSort } from '@/src/features/clients/hooks/useClientSort'
+import { useToast } from '@/src/hooks/useToast'
 
 export default function ClientsPage() {
-  const { sortBy, setSortBy, sortOptions } = useClientSort();
-  const { addToast } = useToast();
+  const { sortBy, setSortBy, sortOptions } = useClientSort()
+  const { addToast } = useToast()
 
   return (
     <motion.div
@@ -17,12 +16,10 @@ export default function ClientsPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="w-full max-w-7xl"
     >
-      <Breadcrumb items={[{ label: 'Home' }, { label: 'Clients' }]} />
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-white">Clients</h1>
           <p className="text-sm text-slate-400 mt-1">Trust-based CRM</p>
@@ -49,8 +46,10 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Clients Grid */}
-      <ClientGrid sortBy={sortBy} />
+      {/* Clients Grid - Fill Page */}
+      <div className="h-[calc(100vh-240px)] min-h-[500px] overflow-auto">
+        <ClientGrid sortBy={sortBy} />
+      </div>
     </motion.div>
-  );
+  )
 }

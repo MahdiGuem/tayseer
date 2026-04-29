@@ -38,7 +38,7 @@ export default function DashboardLayout({
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col items-center justify-start p-4 lg:p-8 overflow-auto">
+        <main className="flex-1 flex flex-col overflow-auto">
           {/* Loading */}
           <AnimatePresence>
             {isLoading && (

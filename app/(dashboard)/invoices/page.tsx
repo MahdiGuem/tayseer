@@ -1,14 +1,14 @@
-'use client';
+'use client'
 
-import { Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { InvoiceTable } from '@/src/features/invoices/components/InvoiceTable';
-import { useInvoiceFilter } from '@/src/features/invoices/hooks/useInvoiceFilter';
-import { useToast } from '@/src/hooks/useToast';
+import { Plus } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { InvoiceTable } from '@/src/features/invoices/components/InvoiceTable'
+import { useInvoiceFilter } from '@/src/features/invoices/hooks/useInvoiceFilter'
+import { useToast } from '@/src/hooks/useToast'
 
 export default function InvoicesPage() {
-  const { filter, setFilter, filterOptions } = useInvoiceFilter();
-  const { addToast } = useToast();
+  const { filter, setFilter, filterOptions } = useInvoiceFilter()
+  const { addToast } = useToast()
 
   return (
     <motion.div
@@ -16,10 +16,10 @@ export default function InvoicesPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="w-full max-w-7xl"
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-white">Invoices</h1>
           <p className="text-sm text-slate-400 mt-1">Track and manage your invoices</p>
@@ -34,7 +34,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-4">
         {filterOptions.map((f) => (
           <button
             key={f.value}
@@ -50,8 +50,10 @@ export default function InvoicesPage() {
         ))}
       </div>
 
-      {/* Invoices Table */}
-      <InvoiceTable filter={filter} onToast={(msg) => addToast(msg, 'success')} />
+      {/* Invoices Table - Fill Page */}
+      <div className="h-[calc(100vh-280px)] min-h-[500px]">
+        <InvoiceTable filter={filter} onToast={(msg) => addToast(msg, 'success')} />
+      </div>
     </motion.div>
-  );
+  )
 }
