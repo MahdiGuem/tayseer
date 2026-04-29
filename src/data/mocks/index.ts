@@ -9,6 +9,8 @@ import type {
   CashflowEntry,
   CashPoolConfig,
   PulseMetric,
+  Discussion,
+  DiscussionMessage,
 } from '@/src/types';
 
 export type {
@@ -22,6 +24,8 @@ export type {
   CashflowEntry,
   CashPoolConfig,
   PulseMetric,
+  Discussion,
+  DiscussionMessage,
 };
 
 // Mock Data
@@ -237,4 +241,40 @@ export const pulseMetrics: PulseMetric[] = [
   { id: 'metric-002', label: 'Burn Rate', value: '$4,800/mo', change: '+3.2%', trend: 'up', sublabel: 'Avg monthly' },
   { id: 'metric-003', label: 'Agent Efficiency', value: '47 hours', change: '+23%', trend: 'up', sublabel: 'Time saved this month' },
   { id: 'metric-004', label: 'Active Projects', value: '4', change: '+1', trend: 'up', sublabel: '2 completed this month' },
+];
+
+// Discussions
+export const discussions: Discussion[] = [
+  { id: 'disc-001', clientId: 'client-002', lastMessageAt: '2024-11-15T14:30:00Z', unreadCount: 2, isPinned: true },
+  { id: 'disc-002', clientId: 'client-003', lastMessageAt: '2024-11-14T09:15:00Z', unreadCount: 0, isPinned: false },
+  { id: 'disc-003', clientId: 'client-001', lastMessageAt: '2024-11-13T16:45:00Z', unreadCount: 0, isPinned: false },
+  { id: 'disc-004', clientId: 'client-004', lastMessageAt: '2024-11-12T11:20:00Z', unreadCount: 5, isPinned: false },
+  { id: 'disc-005', clientId: 'client-008', lastMessageAt: '2024-11-10T08:00:00Z', unreadCount: 0, isPinned: false },
+];
+
+// Discussion Messages
+export const discussionMessages: DiscussionMessage[] = [
+  // Hyperrise conversation
+  { id: 'dm-001', discussionId: 'disc-001', senderRole: 'CLIENT', senderName: 'Hyperrise', content: 'Hey! Just reviewed the database schema. Looks solid!', status: 'read', createdAt: '2024-11-15T14:25:00Z' },
+  { id: 'dm-002', discussionId: 'disc-001', senderRole: 'DEV', senderName: 'You', content: 'Thanks! Moving on to the API endpoints now.', status: 'read', createdAt: '2024-11-15T14:28:00Z' },
+  { id: 'dm-003', discussionId: 'disc-001', senderRole: 'CLIENT', senderName: 'Hyperrise', content: 'Perfect. When do you think the milestone will be ready?', status: 'delivered', createdAt: '2024-11-15T14:30:00Z' },
+  { id: 'dm-004', discussionId: 'disc-001', senderRole: 'CLIENT', senderName: 'Hyperrise', content: 'Also, can you add authentication for the admin panel?', status: 'delivered', createdAt: '2024-11-15T14:31:00Z' },
+  
+  // Acrocraft conversation
+  { id: 'dm-005', discussionId: 'disc-002', senderRole: 'DEV', senderName: 'You', content: 'Component library is ready for review!', status: 'read', createdAt: '2024-11-14T09:10:00Z' },
+  { id: 'dm-006', discussionId: 'disc-002', senderRole: 'CLIENT', senderName: 'Acrocraft', content: 'The components look fantastic! Great work.', status: 'read', createdAt: '2024-11-14T09:15:00Z' },
+  
+  // Tech-Sprint conversation
+  { id: 'dm-007', discussionId: 'disc-003', senderRole: 'DEV', senderName: 'You', content: 'App is live on App Store and Play Store!', status: 'read', createdAt: '2024-11-13T16:40:00Z' },
+  { id: 'dm-008', discussionId: 'disc-003', senderRole: 'CLIENT', senderName: 'Tech-Sprint', content: 'Amazing work! Already getting great feedback.', status: 'read', createdAt: '2024-11-13T16:45:00Z' },
+  
+  // Cyberdyne conversation
+  { id: 'dm-009', discussionId: 'disc-004', senderRole: 'CLIENT', senderName: 'Cyberdyne', content: 'Can we add more instances for peak hours?', status: 'read', createdAt: '2024-11-12T11:15:00Z' },
+  { id: 'dm-010', discussionId: 'disc-004', senderRole: 'DEV', senderName: 'You', content: 'Yes, auto-scaling is configured. I will set up alerts.', status: 'read', createdAt: '2024-11-12T11:18:00Z' },
+  { id: 'dm-011', discussionId: 'disc-004', senderRole: 'CLIENT', senderName: 'Cyberdyne', content: 'Great! When can we test the monitoring?', status: 'delivered', createdAt: '2024-11-12T11:20:00Z' },
+  { id: 'dm-012', discussionId: 'disc-004', senderRole: 'CLIENT', senderName: 'Cyberdyne', content: 'Also need the documentation updated.', status: 'delivered', createdAt: '2024-11-12T11:22:00Z' },
+  { id: 'dm-013', discussionId: 'disc-004', senderRole: 'CLIENT', senderName: 'Cyberdyne', content: 'And let me know about the security audit.', status: 'delivered', createdAt: '2024-11-12T11:25:00Z' },
+  
+  // Nile Solutions conversation
+  { id: 'dm-014', discussionId: 'disc-005', senderRole: 'DEV', senderName: 'You', content: 'Ready to start on the Fawry integration. Any specific requirements?', status: 'read', createdAt: '2024-11-10T08:00:00Z' },
 ];

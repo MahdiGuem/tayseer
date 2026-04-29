@@ -115,6 +115,25 @@ export interface CashPoolConfig {
   };
 }
 
+// Discussion Types
+export interface Discussion {
+  id: string;
+  clientId: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  isPinned?: boolean;
+}
+
+export interface DiscussionMessage {
+  id: string;
+  discussionId: string;
+  senderRole: SenderRole;
+  senderName: string;
+  content: string;
+  status: 'sent' | 'delivered' | 'read';
+  createdAt: string;
+}
+
 export interface PulseMetric {
   id: string;
   label: string;
@@ -125,7 +144,7 @@ export interface PulseMetric {
 }
 
 // View Types
-export type ViewType = 'overview' | 'projects' | 'clients' | 'invoices' | 'cashflow' | 'activity';
+export type ViewType = 'overview' | 'projects' | 'clients' | 'invoices' | 'cashflow' | 'activity' | 'discussions';
 
 export interface BreadcrumbItem {
   label: string;
