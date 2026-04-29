@@ -38,18 +38,64 @@ export async function getClientByToken(token: string) {
       }
     }
   })
+  
   if (!client?.project) return client
+  
+  const project = client.project
+  const milestones = project.milestones.map(m => ({
+    id: m.id,
+    projectId: m.projectId,
+    label: m.label,
+    amount: Number(m.amount),
+    dueDate: m.dueDate,
+    isPaid: m.isPaid,
+    order: m.order,
+    createdAt: new Date().toISOString()
+  }))
+  
+  const invoices = project.invoices.map(inv => ({
+    id: inv.id,
+    projectId: inv.projectId,
+    invoiceNumber: inv.invoiceNumber,
+    amount: Number(inv.amount),
+    currency: inv.currency,
+    stage: inv.stage,
+    dueDate: inv.dueDate,
+    createdAt: inv.createdAt.toISOString(),
+    items: inv.items.map(item => ({
+      id: item.id,
+      invoiceId: item.invoiceId,
+      description: item.description,
+      amount: Number(item.amount)
+    }))
+  }))
+  
+  const contracts = project.contracts.map(c => ({
+    id: c.id,
+    projectId: c.projectId,
+    content: c.content,
+    version: c.version,
+    createdAt: c.createdAt.toISOString()
+  }))
+  
+  const messages = project.messages.map(m => ({
+    id: m.id,
+    projectId: m.projectId,
+    senderRole: m.senderRole,
+    senderName: m.senderName,
+    content: m.content,
+    createdAt: m.createdAt.toISOString()
+  }))
+  
   return {
     ...client,
     project: {
-      ...client.project,
-      taxRate: Number(client.project.taxRate),
-      milestones: client.project.milestones.map(m => ({ ...m, amount: Number(m.amount) })),
-      invoices: client.project.invoices.map(inv => ({
-        ...inv,
-        amount: Number(inv.amount),
-        items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
-      }))
+      ...project,
+      taxRate: Number(project.taxRate),
+      milestones,
+      invoices,
+      contracts,
+      messages
     }
   }
 }

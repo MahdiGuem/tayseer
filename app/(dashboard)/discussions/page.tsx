@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { ChatLayout } from '@/src/features/discussions/components/ChatLayout'
-import { useToast } from '@/src/hooks/useToast'
+import { motion } from "framer-motion";
+import { ChatLayout } from "@/src/features/discussions/components/ChatLayout";
+import { useToast } from "@/src/hooks/useToast";
 
 export default function DiscussionsPage() {
-  const { addToast } = useToast()
+  const { addToast } = useToast();
 
   return (
     <motion.div
@@ -15,7 +15,7 @@ export default function DiscussionsPage() {
       transition={{ duration: 0.3 }}
       className="w-full h-full"
     >
-      <ChatLayout onToast={(msg) => addToast(msg, 'success')} />
+      <ChatLayout onToast={(msg) => addToast(msg, "success")} />
     </motion.div>
-  )
+  );
 }
