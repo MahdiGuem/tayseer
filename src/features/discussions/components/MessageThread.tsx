@@ -1,27 +1,28 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
 import { ChatHeader } from "./ChatHeader"
-import type { Client } from "@/src/types"
+import { Loader2, FileText, Check } from "lucide-react"
+import { PlanModal } from "./PlanModal"
 
 interface MessageGroup {
   date: string
   messages: Array<{
     id: string
-    discussionId: string
     senderRole: "DEV" | "CLIENT"
     senderName: string
     content: string
-    status: "sent" | "delivered" | "read"
     createdAt: string
   }>
 }
 
 interface MessageThreadProps {
-  client: Client | null
-  projectCount: number
+  clientName: string
+  projectTitle: string
+  projectId: string
+  loading?: boolean
   groupedMessages: MessageGroup[]
   inputValue: string
   onInputChange: (value: string) => void
@@ -29,14 +30,17 @@ interface MessageThreadProps {
 }
 
 export function MessageThread({
-  client,
-  projectCount,
+  clientName,
+  projectTitle,
+  projectId,
+  loading,
   groupedMessages,
   inputValue,
   onInputChange,
   onSend,
 }: MessageThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showPlanModal, setShowPlanModal] = useState(false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -59,29 +63,61 @@ export function MessageThread({
     })
   }
 
+  const hasClient = clientName.length > 0
+
   return (
     <div className="flex flex-col h-full w-full bg-black/20">
-      <ChatHeader client={client} projectCount={projectCount} />
+      <ChatHeader 
+        clientName={clientName} 
+        projectTitle={projectTitle} 
+        hasClient={hasClient}
+      />
+
+      {/* Plan Actions Bar */}
+      {hasClient && projectId && (
+        <div className="px-4 py-2 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
+          <button
+            onClick={() => setShowPlanModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-md hover:bg-emerald-500/20 text-sm font-medium transition-colors"
+          >
+            <FileText size={14} />
+            Generate Plan
+          </button>
+          {projectId && (
+            <button
+              onClick={() => setShowPlanModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 text-slate-300 rounded-md hover:bg-white/10 text-sm font-medium transition-colors"
+            >
+              <Check size={14} />
+              Finalize & Create Milestones
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {client ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="animate-spin text-slate-500" size={24} />
+          </div>
+        ) : hasClient ? (
           groupedMessages.length > 0 ? (
             groupedMessages.map((group) => (
               <div key={group.date} className="space-y-2">
-                {/* Date Header */}
                 <div className="flex justify-center">
                   <span className="px-2 py-0.5 bg-white/5 rounded-full text-[10px] text-slate-500">
                     {formatDate(group.date)}
                   </span>
                 </div>
-
-                {/* Messages in group */}
                 {group.messages.map((message, messageIndex) => (
                   <MessageBubble
                     key={message.id}
-                    message={message}
-                    isLastInGroup={messageIndex === group.messages.length - 1}
+                    senderRole={message.senderRole}
+                    senderName={message.senderName}
+                    content={message.content}
+                    createdAt={message.createdAt}
+                    clientName={clientName}
                   />
                 ))}
               </div>
@@ -112,12 +148,20 @@ export function MessageThread({
       </div>
 
       {/* Input Area */}
-      {client && (
+      {hasClient && (
         <MessageInput
           value={inputValue}
           onChange={onInputChange}
           onSend={onSend}
-          disabled={!client}
+          disabled={!hasClient}
+        />
+      )}
+
+      {/* Plan Modal */}
+      {showPlanModal && projectId && (
+        <PlanModal
+          projectId={projectId}
+          onClose={() => setShowPlanModal(false)}
         />
       )}
     </div>

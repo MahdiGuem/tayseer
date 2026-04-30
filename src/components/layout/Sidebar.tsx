@@ -1,9 +1,10 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { cn } from '@/src/lib/utils/cn';
 import { NAV_ITEMS } from '@/src/lib/constants/routes';
-import { discussions } from '@/src/data/mocks';
+import { getProjects } from '@/app/actions/project';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,14 +14,24 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [totalUnread, setTotalUnread] = useState(0)
+
+  useEffect(() => {
+    getProjects()
+      .then((projects: any[]) => {
+        const count = projects.reduce((sum, p) => {
+          const unread = p.messages?.filter((m: any) => m.senderRole === 'CLIENT').length || 0
+          return sum + unread
+        }, 0)
+        setTotalUnread(count)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleNavigation = (href: string) => {
     router.push(href);
     onClose();
   };
-
-  // Calculate total unread discussions
-  const totalUnread = discussions.reduce((sum, d) => sum + d.unreadCount, 0);
 
   return (
     <aside

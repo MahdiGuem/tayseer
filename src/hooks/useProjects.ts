@@ -32,7 +32,7 @@ export function useProjects() {
 export function useCreateProject() {
   const [loading, setLoading] = useState(false)
   
-  const create = async (data: { title: string; taxRate?: number; currency?: string }) => {
+  const create = async (data: { title: string; clientIds: string[]; taxRate?: number; currency?: string }) => {
     setLoading(true)
     try {
       const project = await createProject(data)
@@ -48,10 +48,18 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const [loading, setLoading] = useState(false)
   
-  const update = async (id: string, data: { title?: string; taxRate?: number; currency?: string; status?: string }) => {
+  const update = async (id: string, data: { 
+    title?: string
+    taxRate?: number
+    currency?: string
+    status?: string
+    planDescription?: string | null
+    planMilestones?: unknown
+    isPlanFinalized?: boolean
+  }) => {
     setLoading(true)
     try {
-      const project = await updateProject(id, data)
+      const project = await updateProject(id, data as any)
       return project
     } finally {
       setLoading(false)

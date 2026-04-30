@@ -7,32 +7,43 @@ export type LogAction = 'milestone' | 'invoice' | 'escrow' | 'payment' | 'alert'
 export type VaultType = 'tax' | 'expenses' | 'profit';
 export type TransactionType = 'inflow' | 'outflow';
 
-// Core Models
+export interface PlanMilestone {
+  label: string
+  amount: number
+  dueDate?: string
+}
+
 export interface Project {
   id: string;
   title: string;
   taxRate: number;
   status: ProjectStatus;
   currency: string;
+  planDescription?: string | null;
+  planMilestones?: PlanMilestone[] | null;
+  isPlanFinalized: boolean;
   createdAt: string;
   updatedAt: string;
+  projectClients: ProjectClient[];
   clients: Client[];
   milestones: Milestone[];
   messages: Message[];
   expenses: Expense[];
-  contracts: Contract[];
 }
 
 export interface Client {
   id: string;
-  projectId: string;
   name: string;
   email?: string;
   platform?: string;
-  clientToken: string;
   createdAt: string;
-  trustScore?: number;
-  avgPaymentDays?: number;
+}
+
+export interface ProjectClient {
+  id: string
+  clientToken: string
+  client: Client
+  createdAt: string
 }
 
 export interface Milestone {
@@ -66,14 +77,6 @@ export interface Expense {
   amount: number;
   category?: string;
   date: string;
-}
-
-export interface Contract {
-  id: string;
-  projectId: string;
-  content: string;
-  version: number;
-  createdAt: string;
 }
 
 export interface AgentLog {

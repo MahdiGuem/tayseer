@@ -12,37 +12,76 @@ export function BusinessPulse() {
   const { expenses } = useExpenses()
 
   const metrics = useMemo(() => {
+    // Handle loading/empty state
+    if (!projects || projects.length === 0) {
+      return [
+        {
+          id: 'revenue',
+          label: 'Revenue',
+          value: formatCurrency(0, 'USD'),
+          change: '-',
+          trend: 'neutral' as const,
+          sublabel: 'No data'
+        },
+        {
+          id: 'expenses',
+          label: 'Burn Rate',
+          value: formatCurrency(0, 'USD'),
+          change: '-',
+          trend: 'neutral' as const,
+          sublabel: 'No data'
+        },
+        {
+          id: 'projects',
+          label: 'Projects',
+          value: '0',
+          change: '0 total',
+          trend: 'neutral' as const,
+          sublabel: 'Active'
+        },
+        {
+          id: 'invoices',
+          label: 'Invoices',
+          value: '0',
+          change: 'Clear',
+          trend: 'up' as const,
+          sublabel: 'Awaiting'
+        }
+      ]
+    }
+
     const totalRevenue = projects.reduce((sum, p) => {
-      const paidMilestones = p.milestones.filter(m => m.isPaid).reduce((s, m) => s + m.amount, 0)
+      const paidMilestones = (p.milestones || []).filter(m => m.isPaid).reduce((s, m) => s + (m.amount || 0), 0)
       return sum + paidMilestones
     }, 0)
 
     const activeProjects = projects.filter(p => p.status === 'ACTIVE').length
+    const totalProjects = projects.length
     const pendingInvoices = projects.reduce((sum, p) => {
-      return sum + p.invoices.filter(i => i.stage < 4).length
+      return sum + ((p.invoices || []).filter(i => i.stage < 4).length)
     }, 0)
 
     // Calculate burn rate (last 30 days expenses)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const recentExpenses = expenses
+    const recentExpenses = (expenses || [])
       .filter(e => new Date(e.date) > thirtyDaysAgo)
-      .reduce((sum, e) => sum + e.amount, 0)
+      .reduce((sum, e) => sum + (e.amount || 0), 0)
 
     return [
       {
         id: 'revenue',
         label: 'Revenue',
         value: formatCurrency(totalRevenue, 'USD'),
-        change: '+12.5%',
-        trend: 'up' as const,
+        change: totalRevenue > 0 ? `${((totalRevenue / 1000)).toFixed(1)}k` : '-',
+        trend: totalRevenue > 0 ? 'up' as const : 'neutral' as const,
         sublabel: 'All time'
       },
       {
         id: 'expenses',
         label: 'Burn Rate',
         value: formatCurrency(recentExpenses, 'USD'),
-        change: '~30 days',
+        change: recentExpenses > 0 ? '30 days' : '-',
         trend: 'neutral' as const,
         sublabel: 'Last 30 days'
       },
@@ -50,7 +89,7 @@ export function BusinessPulse() {
         id: 'projects',
         label: 'Projects',
         value: activeProjects.toString(),
-        change: projects.length > 0 ? `${projects.length} total` : '0',
+        change: `${totalProjects} total`,
         trend: activeProjects > 0 ? 'up' as const : 'neutral' as const,
         sublabel: 'Active'
       },

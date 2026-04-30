@@ -8,7 +8,6 @@ import { createClient } from '../actions/client'
 import { createMilestone, getMilestones } from '../actions/milestone'
 import { createInvoice, getInvoices } from '../actions/invoice'
 import { createMessage, getMessages } from '../actions/message'
-import { createContract } from '../actions/contract'
 import { createExpense } from '../actions/expense'
 
 type LogEntry = { time: string; action: string; result: string; error?: string }
@@ -27,6 +26,7 @@ export default function TestPage() {
     try {
       const project = await createProject({
         title: `Test Project ${Date.now()}`,
+        clientIds: [],
         taxRate: 20,
         currency: 'USD'
       })
@@ -79,13 +79,12 @@ export default function TestPage() {
       return
     }
     try {
-      const client = await createClient(projectId, {
+      const client = await createClient({
         name: 'Test Client',
         email: 'test@example.com',
         platform: 'Telegram'
       })
-      setClientToken(client.clientToken)
-      addLog('createClient', `Created with token: ${client.clientToken.slice(0, 10)}...`)
+      addLog('createClient', `Created client: ${client.id}`)
     } catch (e: unknown) {
       addLog('createClient', '', String(e))
     }
@@ -148,21 +147,7 @@ export default function TestPage() {
     }
   }
 
-  // Contract Tests
-  const testCreateContract = async () => {
-    if (!projectId) {
-      addLog('createContract', '', 'No project ID')
-      return
-    }
-    try {
-      const contract = await createContract(projectId, 'This is a test contract.')
-      addLog('createContract', `Created version: ${contract.version}`)
-    } catch (e: unknown) {
-      addLog('createContract', '', String(e))
-    }
-  }
-
-  // Expense Tests
+// Expense Tests
   const testCreateExpense = async () => {
     try {
       const expense = await createExpense({
@@ -241,9 +226,6 @@ export default function TestPage() {
             </button>
             <button onClick={testCreateMessage} className="px-4 py-2 bg-pink-600 rounded hover:bg-pink-700">
               createMessage
-            </button>
-            <button onClick={testCreateContract} className="px-4 py-2 bg-teal-600 rounded hover:bg-teal-700">
-              createContract
             </button>
             <button onClick={testCreateExpense} className="px-4 py-2 bg-cyan-600 rounded hover:bg-cyan-700">
               createExpense

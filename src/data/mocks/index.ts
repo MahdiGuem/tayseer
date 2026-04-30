@@ -4,7 +4,6 @@ import type {
   Milestone,
   Message,
   Expense,
-  Contract,
   AgentLog,
   CashflowEntry,
   CashPoolConfig,
@@ -19,7 +18,6 @@ export type {
   Milestone,
   Message,
   Expense,
-  Contract,
   AgentLog,
   CashflowEntry,
   CashPoolConfig,
@@ -29,7 +27,7 @@ export type {
 };
 
 // Mock Data
-export const projects: Project[] = [
+export const projects = [
   {
     id: 'proj-001',
     title: 'Anima Refactor',
@@ -38,8 +36,8 @@ export const projects: Project[] = [
     currency: 'USD',
     createdAt: '2024-08-01T00:00:00Z',
     updatedAt: '2024-11-15T00:00:00Z',
-    clients: [
-      { id: 'client-002', projectId: 'proj-001', name: 'Hyperrise', email: 'contact@hyperrise.io', platform: 'Telegram', clientToken: 'token-hyp-001', createdAt: '2024-08-01T00:00:00Z', trustScore: 95, avgPaymentDays: 3 }
+    projectClients: [
+      { id: 'pc-001', clientToken: 'token-hyp-001', client: { id: 'client-002', name: 'Hyperrise', email: 'contact@hyperrise.io', platform: 'Telegram', createdAt: '2024-08-01T00:00:00Z' }, createdAt: '2024-08-01T00:00:00Z' }
     ],
     milestones: [
       { id: 'ms-001', projectId: 'proj-001', label: 'Database Schema Design', amount: 1500.00, dueDate: '2024-08-15', isPaid: true, order: 0 },
@@ -56,9 +54,9 @@ export const projects: Project[] = [
       { id: 'exp-001', projectId: 'proj-001', description: 'AWS Database Hosting', amount: 150.00, category: 'Infrastructure', date: '2024-08-15' },
       { id: 'exp-002', projectId: 'proj-001', description: 'API Documentation Tools', amount: 79.00, category: 'Software', date: '2024-09-01' },
     ],
-    contracts: [
-      { id: 'contract-001', projectId: 'proj-001', content: 'Backend Migration Contract v1.0', version: 1, createdAt: '2024-08-01T00:00:00Z' },
-    ]
+    isPlanFinalized: false,
+    planDescription: null,
+    planMilestones: null
   },
   {
     id: 'proj-002',

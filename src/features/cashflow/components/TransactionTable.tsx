@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { cashflowTransactions } from '@/src/data/mocks';
+import { useProjects } from '@/src/hooks/useProjects'
+import { useExpenses } from '@/src/hooks/useActivity'
 import { formatCurrency } from '@/src/lib/utils/currency';
 import { cn } from '@/src/lib/utils/cn';
 import type { VaultType, TransactionType } from '@/src/types';
@@ -18,13 +19,58 @@ const VAULT_BADGES: Record<VaultType, string> = {
 };
 
 export function TransactionTable({ vaultFilter, typeFilter }: TransactionTableProps) {
+  const { projects } = useProjects()
+  const { expenses } = useExpenses()
+
+  const transactions = useMemo(() => {
+    const txns: Array<{
+      id: string
+      date: string
+      description: string
+      category: string
+      vault: VaultType
+      type: TransactionType
+      amount: number
+    }> = []
+
+    // Add milestones as inflows
+    projects?.forEach(p => {
+      p.milestones?.filter(m => m.isPaid).forEach(m => {
+        txns.push({
+          id: m.id,
+          date: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          description: `Milestone: ${m.label}`,
+          category: 'Milestone',
+          vault: 'profit' as VaultType,
+          type: 'inflow' as TransactionType,
+          amount: m.amount || 0
+        })
+      })
+    })
+
+    // Add expenses
+    expenses?.forEach(e => {
+      txns.push({
+        id: e.id,
+        date: e.date ? new Date(e.date).toLocaleDateString() : new Date().toLocaleDateString(),
+        description: e.description,
+        category: e.category || 'Expense',
+        vault: 'expenses' as VaultType,
+        type: 'outflow' as TransactionType,
+        amount: e.amount || 0
+      })
+    })
+
+    return txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [projects, expenses])
+
   const filteredTransactions = useMemo(() => {
-    return cashflowTransactions.filter((t) => {
-      const vaultMatch = vaultFilter === 'all' || t.vault === vaultFilter;
-      const typeMatch = typeFilter === 'all' || t.type === typeFilter;
-      return vaultMatch && typeMatch;
-    });
-  }, [vaultFilter, typeFilter]);
+    return transactions.filter((t) => {
+      const vaultMatch = vaultFilter === 'all' || t.vault === vaultFilter
+      const typeMatch = typeFilter === 'all' || t.type === typeFilter
+      return vaultMatch && typeMatch
+    })
+  }, [transactions, vaultFilter, typeFilter])
 
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] overflow-hidden">
@@ -42,44 +88,47 @@ export function TransactionTable({ vaultFilter, typeFilter }: TransactionTablePr
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-slate-300">
-            {filteredTransactions.map((txn) => {
-              const isInflow = txn.type === 'inflow';
-              return (
-                <tr key={txn.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-500">{txn.date}</td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-slate-200">{txn.description}</p>
-                    {txn.reference && <p className="text-xs text-slate-500">{txn.reference}</p>}
-                  </td>
-                  <td className="px-6 py-4 text-sm">{txn.category}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border',
-                        VAULT_BADGES[txn.vault]
-                      )}
-                    >
-                      {txn.vault.charAt(0).toUpperCase() + txn.vault.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-emerald-400">
-                    {isInflow ? formatCurrency(txn.amount, txn.currency) : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-rose-400">
-                    {!isInflow ? formatCurrency(txn.amount, txn.currency) : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-right font-medium">
-                    <span className={isInflow ? 'text-emerald-400' : 'text-rose-400'}>
-                      {isInflow ? '+' : '-'}
-                      {formatCurrency(txn.amount, txn.currency)}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+            {filteredTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-8 text-center text-slate-500 text-sm">
+                  No transactions found
+                </td>
+              </tr>
+            ) : (
+              filteredTransactions.map((txn) => {
+                const isInflow = txn.type === 'inflow'
+                return (
+                  <tr key={txn.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4 text-sm text-slate-500">{txn.date}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-white">{txn.description}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-slate-500">{txn.category}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn('px-2 py-0.5 rounded text-xs font-medium border', VAULT_BADGES[txn.vault])}>
+                        {txn.vault}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {isInflow ? <span className="text-emerald-400 text-sm">{formatCurrency(txn.amount, 'USD')}</span> : <span className="text-slate-600">-</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {!isInflow ? <span className="text-red-400 text-sm">{formatCurrency(txn.amount, 'USD')}</span> : <span className="text-slate-600">-</span>}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={cn('font-medium', isInflow ? 'text-emerald-400' : 'text-red-400')}>
+                        {isInflow ? '+' : '-'}{formatCurrency(txn.amount, 'USD')}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>
     </div>
-  );
+  )
 }
