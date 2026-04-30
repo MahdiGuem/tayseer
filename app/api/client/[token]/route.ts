@@ -1,6 +1,49 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const { token } = await params
+  const body = await request.json()
+
+  if (body.action === 'confirmContract') {
+    const projectClient = await prisma.projectClient.findUnique({
+      where: { clientToken: token },
+      include: { project: true }
+    })
+
+    if (!projectClient || !projectClient.project) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const project = projectClient.project
+    const contract = project.contract as any
+
+    if (!contract || contract.status !== 'sent') {
+      return NextResponse.json({ error: 'Contract not ready' }, { status: 400 })
+    }
+
+    const updatedContract = {
+      ...contract,
+      status: 'confirmed'
+    }
+
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { 
+        contract: updatedContract as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        status: 'ACTIVE'
+      }
+    })
+
+    return NextResponse.json({ success: true })
+  }
+
+  return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ token: string }> }
@@ -41,9 +84,7 @@ export async function GET(
       title: project.title,
       currency: project.currency,
       status: project.status,
-      planDescription: project.planDescription,
-      planMilestones: project.planMilestones as Array<{ label: string; amount: number; dueDate?: string }> | null,
-      isPlanFinalized: project.isPlanFinalized
+      contract: project.contract as any
     },
     milestones: project.milestones.map(m => ({
       id: m.id,

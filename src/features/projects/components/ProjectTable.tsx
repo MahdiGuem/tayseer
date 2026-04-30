@@ -167,7 +167,7 @@ function ProjectRow({
           <div>
             <p className="font-medium text-slate-200">{project.title}</p>
             <p className="text-xs text-slate-500">
-              {project.planDescription?.substring(0, 50) || 'No plan'}...
+              {project.contract?.description?.substring(0, 50) || 'No contract'}...
             </p>
           </div>
         </td>

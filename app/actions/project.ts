@@ -2,9 +2,6 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import type { Prisma } from '@prisma/client'
-
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
 export async function getProjects() {
   const projects = await prisma.project.findMany({
@@ -27,53 +24,69 @@ export async function getProjects() {
   return projects.map(p => ({
     id: p.id,
     title: p.title,
-    taxRate: Number(p.taxRate),
+    taxRate: p.taxRate ? Number(p.taxRate) : 0,
     status: p.status,
     currency: p.currency,
-    planDescription: p.planDescription,
-    planMilestones: p.planMilestones as any,
-    isPlanFinalized: p.isPlanFinalized,
+    contract: p.contract as any,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
     milestones: p.milestones.map((m) => ({
       id: m.id,
       projectId: m.projectId,
       label: m.label,
-      amount: Number(m.amount),
+      amount: m.amount ? Number(m.amount) : 0,
       dueDate: m.dueDate?.toISOString() || null,
       isPaid: m.isPaid,
-      order: m.order,
-      createdAt: new Date().toISOString()
+      order: m.order
     })),
     messages: p.messages.map(m => ({
-      ...m,
+      id: m.id,
+      projectId: m.projectId,
+      senderRole: m.senderRole,
+      senderName: m.senderName,
+      content: m.content,
       createdAt: m.createdAt.toISOString()
     })),
     invoices: p.invoices.map(inv => ({
-      ...inv,
-      amount: Number(inv.amount),
+      id: inv.id,
+      projectId: inv.projectId,
+      invoiceNumber: inv.invoiceNumber,
+      amount: inv.amount ? Number(inv.amount) : 0,
+      currency: inv.currency,
+      stage: inv.stage,
       dueDate: inv.dueDate?.toISOString() || null,
       createdAt: inv.createdAt.toISOString(),
-      items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
+      items: inv.items.map(item => ({
+        id: item.id,
+        invoiceId: item.invoiceId,
+        description: item.description,
+        amount: item.amount ? Number(item.amount) : 0
+      }))
     })),
     expenses: p.expenses.map((e) => ({
       id: e.id,
       projectId: e.projectId,
       description: e.description,
-      amount: Number(e.amount),
+      amount: e.amount ? Number(e.amount) : 0,
       category: e.category,
-      date: e.date.toISOString(),
-      createdAt: new Date().toISOString()
+      date: e.date.toISOString()
     })),
     agentLogs: p.agentLogs.map(l => ({
-      ...l,
+      id: l.id,
+      projectId: l.projectId,
+      action: l.action,
+      message: l.message,
+      severity: l.severity,
       createdAt: l.createdAt.toISOString()
     })),
     projectClients: p.projectClients.map(pc => ({
       id: pc.id,
       clientToken: pc.clientToken,
       client: {
-        ...pc.client,
+        id: pc.client.id,
+        name: pc.client.name,
+        email: pc.client.email,
+        platform: pc.client.platform,
         createdAt: pc.client.createdAt.toISOString()
       },
       createdAt: pc.createdAt.toISOString()
@@ -102,53 +115,69 @@ export async function getProject(id: string) {
   return {
     id: project.id,
     title: project.title,
-    taxRate: Number(project.taxRate),
+    taxRate: project.taxRate ? Number(project.taxRate) : 0,
     status: project.status,
     currency: project.currency,
-    planDescription: project.planDescription,
-    planMilestones: project.planMilestones as any,
-    isPlanFinalized: project.isPlanFinalized,
+    contract: project.contract as any,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     milestones: project.milestones.map(m => ({
       id: m.id,
       projectId: m.projectId,
       label: m.label,
-      amount: Number(m.amount),
+      amount: m.amount ? Number(m.amount) : 0,
       dueDate: m.dueDate?.toISOString() || null,
       isPaid: m.isPaid,
-      order: m.order,
-      createdAt: new Date().toISOString()
+      order: m.order
     })),
     messages: project.messages.map(m => ({
-      ...m,
+      id: m.id,
+      projectId: m.projectId,
+      senderRole: m.senderRole,
+      senderName: m.senderName,
+      content: m.content,
       createdAt: m.createdAt.toISOString()
     })),
     invoices: project.invoices.map(inv => ({
-      ...inv,
-      amount: Number(inv.amount),
+      id: inv.id,
+      projectId: inv.projectId,
+      invoiceNumber: inv.invoiceNumber,
+      amount: inv.amount ? Number(inv.amount) : 0,
+      currency: inv.currency,
+      stage: inv.stage,
       dueDate: inv.dueDate?.toISOString() || null,
       createdAt: inv.createdAt.toISOString(),
-      items: inv.items.map(item => ({ ...item, amount: Number(item.amount) }))
+      items: inv.items.map(item => ({
+        id: item.id,
+        invoiceId: item.invoiceId,
+        description: item.description,
+        amount: item.amount ? Number(item.amount) : 0
+      }))
     })),
     expenses: project.expenses.map(e => ({
       id: e.id,
       projectId: e.projectId,
       description: e.description,
-      amount: Number(e.amount),
+      amount: e.amount ? Number(e.amount) : 0,
       category: e.category,
-      date: e.date.toISOString(),
-      createdAt: new Date().toISOString()
+      date: e.date.toISOString()
     })),
     agentLogs: project.agentLogs.map(l => ({
-      ...l,
+      id: l.id,
+      projectId: l.projectId,
+      action: l.action,
+      message: l.message,
+      severity: l.severity,
       createdAt: l.createdAt.toISOString()
     })),
     projectClients: project.projectClients.map(pc => ({
       id: pc.id,
       clientToken: pc.clientToken,
       client: {
-        ...pc.client,
+        id: pc.client.id,
+        name: pc.client.name,
+        email: pc.client.email,
+        platform: pc.client.platform,
         createdAt: pc.client.createdAt.toISOString()
       },
       createdAt: pc.createdAt.toISOString()
@@ -181,15 +210,22 @@ export async function createProject(data: {
   })
   revalidatePath('/')
   return {
-    ...project,
-    taxRate: Number(project.taxRate),
+    id: project.id,
+    title: project.title,
+    taxRate: project.taxRate ? Number(project.taxRate) : 0,
+    status: project.status,
+    currency: project.currency,
+    contract: project.contract as any,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     projectClients: project.projectClients.map(pc => ({
       id: pc.id,
       clientToken: pc.clientToken,
       client: {
-        ...pc.client,
+        id: pc.client.id,
+        name: pc.client.name,
+        email: pc.client.email,
+        platform: pc.client.platform,
         createdAt: pc.client.createdAt.toISOString()
       },
       createdAt: pc.createdAt.toISOString()
@@ -202,18 +238,14 @@ export async function updateProject(id: string, data: {
   taxRate?: number
   currency?: string
   status?: string
-  planDescription?: string | null
-  planMilestones?: JsonValue | null
-  isPlanFinalized?: boolean
+  contract?: unknown
 }) {
   const updateData: Record<string, unknown> = {}
   if (data.title !== undefined) updateData.title = data.title
   if (data.taxRate !== undefined) updateData.taxRate = data.taxRate
   if (data.currency !== undefined) updateData.currency = data.currency
   if (data.status !== undefined) updateData.status = data.status
-  if (data.planDescription !== undefined) updateData.planDescription = data.planDescription
-  if (data.planMilestones !== undefined) updateData.planMilestones = data.planMilestones
-  if (data.isPlanFinalized !== undefined) updateData.isPlanFinalized = data.isPlanFinalized
+  if (data.contract !== undefined) updateData.contract = data.contract
 
   const project = await prisma.project.update({
     where: { id },
@@ -221,8 +253,12 @@ export async function updateProject(id: string, data: {
   })
   revalidatePath('/')
   return {
-    ...project,
-    taxRate: Number(project.taxRate),
+    id: project.id,
+    title: project.title,
+    taxRate: project.taxRate ? Number(project.taxRate) : 0,
+    status: project.status,
+    currency: project.currency,
+    contract: project.contract as any,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString()
   }
@@ -231,91 +267,4 @@ export async function updateProject(id: string, data: {
 export async function deleteProject(id: string) {
   await prisma.project.delete({ where: { id } })
   revalidatePath('/')
-}
-
-export interface PlanMilestoneInput {
-  label: string
-  amount: number
-  dueDate?: string
-}
-
-export async function savePlan(
-  projectId: string, 
-  data: { 
-    description?: string
-    milestones: PlanMilestoneInput[]
-  }
-) {
-  const project = await prisma.project.update({
-    where: { id: projectId },
-    data: {
-      planDescription: data.description ?? undefined,
-      planMilestones: data.milestones.length > 0 ? data.milestones as unknown as Prisma.InputJsonValue : undefined,
-      isPlanFinalized: false
-    }
-  })
-  
-  await prisma.agentLog.create({
-    data: {
-      action: 'plan',
-      message: 'Plan updated',
-      projectId,
-      severity: 'info'
-    }
-  })
-  
-  revalidatePath('/')
-  return {
-    ...project,
-    planDescription: project.planDescription,
-    planMilestones: project.planMilestones as PlanMilestoneInput[] | null,
-    isPlanFinalized: project.isPlanFinalized
-  }
-}
-
-export async function finalizePlan(projectId: string) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { planMilestones: true, isPlanFinalized: true }
-  })
-
-  if (!project) throw new Error('Project not found')
-  if (project.isPlanFinalized) throw new Error('Plan already finalized')
-
-  const milestones = project.planMilestones as PlanMilestoneInput[] | null
-  if (!milestones || milestones.length === 0) {
-    throw new Error('No milestones in plan')
-  }
-
-  // Create milestones from plan
-  await prisma.milestone.createMany({
-    data: milestones.map((m, index) => ({
-      projectId,
-      label: m.label,
-      amount: m.amount,
-      dueDate: m.dueDate ? new Date(m.dueDate) : null,
-      order: index
-    }))
-  })
-
-  // Mark plan as finalized and set status to ACTIVE
-  await prisma.project.update({
-    where: { id: projectId },
-    data: { 
-      isPlanFinalized: true,
-      status: 'ACTIVE'
-    }
-  })
-
-  await prisma.agentLog.create({
-    data: {
-      action: 'plan',
-      message: 'Plan finalized - milestones created',
-      projectId,
-      severity: 'success'
-    }
-  })
-
-  revalidatePath('/')
-  return { success: true }
 }

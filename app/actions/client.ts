@@ -154,11 +154,10 @@ export async function getClientByToken(token: string) {
     project: {
       id: project.id,
       title: project.title,
+      taxRate: project.taxRate ? Number(project.taxRate) : 0,
       currency: project.currency,
       status: project.status,
-      planDescription: project.planDescription,
-      planMilestones: project.planMilestones as Array<{ label: string; amount: number; dueDate?: string }> | null,
-      isPlanFinalized: project.isPlanFinalized,
+      contract: project.contract as any,
       milestones: project.milestones.map(m => ({
         id: m.id,
         projectId: m.projectId,

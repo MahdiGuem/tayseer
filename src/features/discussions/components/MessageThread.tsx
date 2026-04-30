@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
 import { ChatHeader } from "./ChatHeader"
-import { Loader2, FileText, Check } from "lucide-react"
-import { PlanModal } from "./PlanModal"
+import { Loader2, FileText } from "lucide-react"
+import { ContractModal } from "./ContractModal"
+import { getProjectWithContract } from "@/app/actions/contract"
 
 interface MessageGroup {
   date: string
@@ -40,7 +41,18 @@ export function MessageThread({
   onSend,
 }: MessageThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [showPlanModal, setShowPlanModal] = useState(false)
+  const [showContractModal, setShowContractModal] = useState(false)
+  const [contractStatus, setContractStatus] = useState<string>('draft')
+
+  useEffect(() => {
+    if (projectId) {
+      getProjectWithContract(projectId).then(p => {
+        if (p?.contract) {
+          setContractStatus(p.contract.status)
+        }
+      })
+    }
+  }, [projectId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -64,6 +76,7 @@ export function MessageThread({
   }
 
   const hasClient = clientName.length > 0
+  const isContractSent = contractStatus === 'sent' || contractStatus === 'confirmed'
 
   return (
     <div className="flex flex-col h-full w-full bg-black/20">
@@ -73,25 +86,16 @@ export function MessageThread({
         hasClient={hasClient}
       />
 
-      {/* Plan Actions Bar */}
+      {/* Contract Actions Bar */}
       {hasClient && projectId && (
         <div className="px-4 py-2 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
           <button
-            onClick={() => setShowPlanModal(true)}
+            onClick={() => setShowContractModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-md hover:bg-emerald-500/20 text-sm font-medium transition-colors"
           >
             <FileText size={14} />
-            Generate Plan
+            {isContractSent ? 'View Contract' : 'Edit Contract'}
           </button>
-          {projectId && (
-            <button
-              onClick={() => setShowPlanModal(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 text-slate-300 rounded-md hover:bg-white/10 text-sm font-medium transition-colors"
-            >
-              <Check size={14} />
-              Finalize & Create Milestones
-            </button>
-          )}
         </div>
       )}
 
@@ -157,11 +161,11 @@ export function MessageThread({
         />
       )}
 
-      {/* Plan Modal */}
-      {showPlanModal && projectId && (
-        <PlanModal
+      {/* Contract Modal */}
+      {showContractModal && projectId && (
+        <ContractModal
           projectId={projectId}
-          onClose={() => setShowPlanModal(false)}
+          onClose={() => setShowContractModal(false)}
         />
       )}
     </div>

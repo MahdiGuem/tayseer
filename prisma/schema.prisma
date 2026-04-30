@@ -19,23 +19,21 @@ enum SenderRole {
 }
 
 model Project {
-  id             String        @id @default(uuid())
-  title          String
-  taxRate        Decimal       @default(0.00) @db.Decimal(5, 2)
-  status         ProjectStatus @default(DRAFT)
-  currency       String        @default("USD")
-  planDescription String?
-  planMilestones Json?
-  isPlanFinalized Boolean      @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id        String        @id @default(uuid())
+  title     String
+  taxRate   Decimal       @default(0.00) @db.Decimal(5, 2)
+  status    ProjectStatus @default(DRAFT)
+  currency  String        @default("USD")
+  contract  Json?         // { description, milestones: [], clientNames: [], devName, createdAt, status: 'draft'|'sent'|'confirmed' }
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   projectClients ProjectClient[]
   milestones    Milestone[]
-  messages       Message[]
-  expenses       Expense[]
-  invoices      Invoice[]
-  agentLogs     AgentLog[]
+  messages      Message[]
+  expenses      Expense[]
+  invoices     Invoice[]
+  agentLogs    AgentLog[]
 }
 
 model Client {

@@ -1,15 +1,24 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Loader2, FileText } from 'lucide-react'
+import { Send, Loader2, FileText, Check, X } from 'lucide-react'
 import { cn } from '@/src/lib/utils/cn'
 import { supabase } from '@/lib/supabase'
 import { DownloadPlanPDF } from '@/src/components/PlanPDF'
 
-interface PlanMilestone {
+interface ContractMilestone {
   label: string
   amount: number
   dueDate?: string
+}
+
+interface ContractJSON {
+  description: string
+  milestones: ContractMilestone[]
+  clientNames: string[]
+  devName: string
+  createdAt: string
+  status: string
 }
 
 interface ClientData {
@@ -23,9 +32,7 @@ interface ClientData {
     title: string
     currency: string
     status: string
-    planDescription?: string | null
-    planMilestones?: PlanMilestone[] | null
-    isPlanFinalized: boolean
+    contract: ContractJSON | null
   }
   messages: Array<{
     id: string
@@ -45,6 +52,72 @@ interface RealtimeMessage {
   createdAt: string
 }
 
+function ConfirmDialog({ 
+  contract, 
+  onConfirm, 
+  onCancel,
+  loading 
+}: { 
+  contract: ContractJSON
+  onConfirm: () => void
+  onCancel: () => void
+  loading: boolean
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+      <div className="bg-[#0a0a0a] border border-white/10 rounded-xl max-w-lg w-full p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Confirm Contract</h2>
+        <p className="text-slate-400 text-sm mb-4">
+          Please review the contract details below and confirm to proceed.
+        </p>
+        
+        {contract.description && (
+          <div className="mb-4 p-3 bg-white/5 rounded-lg">
+            <p className="text-xs text-slate-500 mb-1">Description</p>
+            <p className="text-white text-sm">{contract.description}</p>
+          </div>
+        )}
+
+        {contract.milestones && contract.milestones.length > 0 && (
+          <div className="mb-6">
+            <p className="text-xs text-slate-500 mb-2">Milestones</p>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {contract.milestones.map((m, i) => (
+                <div key={i} className="flex justify-between text-sm p-2 bg-white/5 rounded">
+                  <span className="text-white">{m.label}</span>
+                  <span className="text-slate-400">
+                    ${m.amount.toLocaleString()} 
+                    {m.dueDate && ` • ${new Date(m.dueDate).toLocaleDateString()}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 py-2 px-4 border border-white/10 text-slate-300 rounded-lg hover:bg-white/5 transition-colors flex items-center justify-center gap-2"
+          >
+            <X size={16} />
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 py-2 px-4 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ClientChatPage({ params }: { params: Promise<{ token: string }> }) {
   const [token, setToken] = useState<string>('')
   const [data, setData] = useState<ClientData | null>(null)
@@ -52,7 +125,9 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
-  const [showPlan, setShowPlan] = useState(false)
+  const [showContract, setShowContract] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -154,6 +229,36 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
     }
   }
 
+  const confirmContract = async () => {
+    if (!data?.project.id) return
+    
+    setConfirming(true)
+    try {
+      const res = await fetch(`/api/client/${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'confirmContract' })
+      })
+      if (!res.ok) throw new Error('Failed to confirm')
+      
+      setData(prev => prev ? {
+        ...prev,
+        project: {
+          ...prev.project,
+          contract: prev.project.contract ? {
+            ...prev.project.contract,
+            status: 'confirmed'
+          } : null
+        }
+      } : null)
+      setShowConfirm(false)
+    } catch {
+      setError('Failed to confirm contract')
+    } finally {
+      setConfirming(false)
+    }
+  }
+
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -179,10 +284,22 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
   }
 
   const isClient = (role: 'DEV' | 'CLIENT') => role === 'CLIENT'
-  const hasPlan = data.project.planMilestones || data.project.planDescription
+  const contract = data.project.contract
+  const hasContract = contract?.milestones?.length || contract?.description
+  const isContractSent = contract?.status === 'sent'
+  const isContractConfirmed = contract?.status === 'confirmed'
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
+      {showConfirm && contract && (
+        <ConfirmDialog
+          contract={contract}
+          onConfirm={confirmContract}
+          onCancel={() => setShowConfirm(false)}
+          loading={confirming}
+        />
+      )}
+
       {/* Header */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
         <div className="flex items-center gap-3">
@@ -195,14 +312,29 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {hasPlan && (
+          {hasContract && (
             <button
-              onClick={() => setShowPlan(!showPlan)}
+              onClick={() => setShowContract(!showContract)}
               className="flex items-center gap-2 px-3 py-1.5 bg-white/5 text-slate-200 rounded-md hover:bg-white/10 text-sm transition-colors"
             >
               <FileText size={14} />
-              {showPlan ? 'Hide Plan' : 'View Plan'}
+              {showContract ? 'Hide' : 'View'}
             </button>
+          )}
+          {isContractSent && !isContractConfirmed && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-black rounded-md hover:bg-emerald-400 text-sm transition-colors"
+            >
+              <Check size={14} />
+              Confirm
+            </button>
+          )}
+          {isContractConfirmed && (
+            <span className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-md text-xs">
+              <Check size={12} />
+              Confirmed
+            </span>
           )}
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -211,37 +343,44 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
         </div>
       </div>
 
-      {/* Plan Section */}
-      {showPlan && hasPlan && (
+      {/* Contract Section */}
+      {showContract && hasContract && (
         <div className="p-4 border-b border-white/10 bg-white/[0.02]">
           <div className="bg-black border border-white/10 rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-white font-medium">Project Plan</h3>
-                {data.project.isPlanFinalized && (
-                  <span className="text-xs text-emerald-400">Finalized</span>
+                <h3 className="text-white font-medium">Contract</h3>
+                {contract?.status && (
+                  <span className={cn(
+                    'text-xs',
+                    contract.status === 'confirmed' ? 'text-emerald-400' : 'text-amber-400'
+                  )}>
+                    {contract.status.charAt(0).toUpperCase() + contract.status.slice(1)}
+                  </span>
                 )}
               </div>
-              <DownloadPlanPDF
-                projectTitle={data.project.title}
-                description={data.project.planDescription}
-                milestones={data.project.planMilestones || []}
-                currency={data.project.currency}
-              />
+              {isContractConfirmed && contract && (
+                <DownloadPlanPDF
+                  projectTitle={data.project.title}
+                  description={contract.description}
+                  milestones={contract.milestones || []}
+                  currency={data.project.currency}
+                />
+              )}
             </div>
             
-            {data.project.planDescription && (
+            {contract?.description && (
               <div className="mb-4">
                 <p className="text-sm text-slate-400 mb-1">Description</p>
-                <p className="text-white text-sm">{data.project.planDescription}</p>
+                <p className="text-white text-sm">{contract.description}</p>
               </div>
             )}
 
-            {data.project.planMilestones && data.project.planMilestones.length > 0 && (
+            {contract?.milestones && contract.milestones.length > 0 && (
               <div>
                 <p className="text-sm text-slate-400 mb-2">Milestones</p>
                 <div className="space-y-2">
-                  {data.project.planMilestones.map((m, i) => (
+                  {contract.milestones.map((m, i) => (
                     <div key={i} className="flex justify-between text-sm">
                       <span className="text-white">{m.label}</span>
                       <span className="text-slate-400">

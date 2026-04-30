@@ -38,7 +38,7 @@ export function TransactionTable({ vaultFilter, typeFilter }: TransactionTablePr
       p.milestones?.filter(m => m.isPaid).forEach(m => {
         txns.push({
           id: m.id,
-          date: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          date: m.dueDate ? new Date(m.dueDate).toLocaleDateString() : new Date().toLocaleDateString(),
           description: `Milestone: ${m.label}`,
           category: 'Milestone',
           vault: 'profit' as VaultType,
