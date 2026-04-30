@@ -124,22 +124,14 @@ function ProjectRow({
 }: ProjectRowProps) {
   const { create: createMilestone, loading: creatingMilestone } = useCreateMilestone()
   const { markPaid } = useMarkMilestonePaid()
-  const [newMilestoneLabel, setNewMilestoneLabel] = useState('')
-  const [showAddMilestone, setShowAddMilestone] = useState(false)
+  
 
   const paidMilestones = project.milestones.filter((m) => m.isPaid).length
   const totalMilestones = project.milestones.length
   const progress = totalMilestones > 0 ? Math.round((paidMilestones / totalMilestones) * 100) : 0
   const totalValue = project.milestones.reduce((sum, m) => sum + m.amount, 0)
 
-  const handleAddMilestone = async () => {
-    if (!newMilestoneLabel.trim()) return
-    await createMilestone(project.id, { label: newMilestoneLabel, amount: 0 })
-    setNewMilestoneLabel('')
-    setShowAddMilestone(false)
-    refetch()
-    onToast?.('Milestone added')
-  }
+
 
   const handleTogglePaid = async (milestoneId: string, isPaid: boolean) => {
     await markPaid(milestoneId, !isPaid)
@@ -234,12 +226,6 @@ function ProjectRow({
                 showEvidence={showEvidence}
                 onShowEvidence={onShowEvidence}
                 onTogglePaid={handleTogglePaid}
-                showAddMilestone={showAddMilestone}
-                setShowAddMilestone={setShowAddMilestone}
-                newMilestoneLabel={newMilestoneLabel}
-                setNewMilestoneLabel={setNewMilestoneLabel}
-                onAddMilestone={handleAddMilestone}
-                isAdding={creatingMilestone}
               />
             </td>
           </motion.tr>
@@ -254,57 +240,19 @@ interface MilestoneListProps {
   showEvidence: string | null
   onShowEvidence: (id: string | null) => void
   onTogglePaid: (id: string, isPaid: boolean) => void
-  showAddMilestone: boolean
-  setShowAddMilestone: (v: boolean) => void
-  newMilestoneLabel: string
-  setNewMilestoneLabel: (v: string) => void
-  onAddMilestone: () => void
-  isAdding: boolean
 }
 
 function MilestoneList({ 
   milestones, 
   showEvidence, 
   onShowEvidence,
-  onTogglePaid,
-  showAddMilestone,
-  setShowAddMilestone,
-  newMilestoneLabel,
-  setNewMilestoneLabel,
-  onAddMilestone,
-  isAdding
+  onTogglePaid
 }: MilestoneListProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-slate-300">Milestones / معالم المشروع</h4>
-        <button
-          onClick={() => setShowAddMilestone(!showAddMilestone)}
-          className="text-xs text-emerald-400 hover:text-emerald-300"
-        >
-          + Add Milestone
-        </button>
       </div>
-      
-      {showAddMilestone && (
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={newMilestoneLabel}
-            onChange={(e) => setNewMilestoneLabel(e.target.value)}
-            placeholder="Milestone name"
-            className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder:text-slate-500"
-            onKeyDown={(e) => e.key === 'Enter' && onAddMilestone()}
-          />
-          <button
-            onClick={onAddMilestone}
-            disabled={isAdding}
-            className="px-3 py-2 bg-emerald-500 text-black text-sm rounded hover:bg-emerald-400 disabled:opacity-50"
-          >
-            {isAdding ? 'Adding...' : 'Add'}
-          </button>
-        </div>
-      )}
       
       {milestones.map((milestone) => (
         <MilestoneItem

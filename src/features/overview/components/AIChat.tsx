@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, Send } from 'lucide-react'
-import { chatMessages } from '@/src/data/mocks'
 import { formatTime } from '@/src/lib/utils/date'
 import type { Message } from '@/src/types'
 
@@ -37,7 +36,7 @@ interface AIChatProps {
 
 export function AIChat({ onToast }: AIChatProps) {
   const [chatInput, setChatInput] = useState('')
-  const [messages, setMessages] = useState<Message[]>(chatMessages)
+  const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
