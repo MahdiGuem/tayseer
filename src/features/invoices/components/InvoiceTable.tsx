@@ -25,8 +25,8 @@ export function InvoiceTable({ filter, onToast }: InvoiceTableProps) {
 
   const invoiceData = useMemo<InvoiceWithProject[]>(() => {
     return projects.flatMap((p) => {
-      const clientName = p.clients[0]?.name || 'Unknown'
-      const clientEmail = p.clients[0]?.email || ''
+      const clientName = p.projectClients?.[0]?.client?.name || 'Unknown'
+      const clientEmail = p.projectClients?.[0]?.client?.email || ''
       
       return p.invoices.map((inv) => {
         const status = getInvoiceStatusFromStage(inv.stage, inv.dueDate)

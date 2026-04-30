@@ -160,18 +160,18 @@ function ProjectRow({
           <div>
             <p className="font-medium text-slate-200">{project.title}</p>
             <p className="text-xs text-slate-500">
-              {project.contracts?.[0]?.content?.substring(0, 50) || 'No contract'}...
+              {project.planDescription?.substring(0, 50) || 'No plan'}...
             </p>
           </div>
         </td>
         <td className="px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-medium">
-              {project.clients[0]?.name?.charAt(0) || '?'}
+              {project.projectClients?.[0]?.client?.name?.charAt(0) || '?'}
             </div>
             <div>
-              <p className="text-sm text-slate-200">{project.clients[0]?.name || 'No client'}</p>
-              <p className="text-xs text-slate-500">{project.clients[0]?.email || ''}</p>
+              <p className="text-sm text-slate-200">{project.projectClients?.[0]?.client?.name || 'No client'}</p>
+              <p className="text-xs text-slate-500">{project.projectClients?.[0]?.client?.email || ''}</p>
             </div>
           </div>
         </td>

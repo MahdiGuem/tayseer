@@ -14,13 +14,13 @@ interface ClientWithStats {
   name: string
   email: string | null
   platform: string | null
+  createdAt: string
   clientToken: string
   projectTitle: string
   projectCurrency: string
   totalRevenue: number
   trustScore: number
   avgPaymentDays: number
-  createdAt: string
 }
 
 export function ClientGrid({ sortBy }: ClientGridProps) {
@@ -28,13 +28,14 @@ export function ClientGrid({ sortBy }: ClientGridProps) {
 
   const clients = useMemo(() => {
     const allClients: ClientWithStats[] = projects.flatMap((p) =>
-      p.clients.map((c) => {
+      p.projectClients?.map((pc) => {
         const totalRevenue = p.milestones
           .filter((m) => m.isPaid)
           .reduce((sum, m) => sum + m.amount, 0)
         
         return {
-          ...c,
+          ...pc.client,
+          clientToken: pc.clientToken,
           projectTitle: p.title,
           projectCurrency: p.currency,
           totalRevenue,

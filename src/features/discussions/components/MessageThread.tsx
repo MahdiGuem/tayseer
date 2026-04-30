@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
 import { ChatHeader } from "./ChatHeader"
-import { Loader2 } from "lucide-react"
+import { Loader2, FileText, Check } from "lucide-react"
+import { PlanModal } from "./PlanModal"
 
 interface MessageGroup {
   date: string
@@ -20,6 +21,7 @@ interface MessageGroup {
 interface MessageThreadProps {
   clientName: string
   projectTitle: string
+  projectId: string
   loading?: boolean
   groupedMessages: MessageGroup[]
   inputValue: string
@@ -30,6 +32,7 @@ interface MessageThreadProps {
 export function MessageThread({
   clientName,
   projectTitle,
+  projectId,
   loading,
   groupedMessages,
   inputValue,
@@ -37,6 +40,7 @@ export function MessageThread({
   onSend,
 }: MessageThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showPlanModal, setShowPlanModal] = useState(false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -68,6 +72,28 @@ export function MessageThread({
         projectTitle={projectTitle} 
         hasClient={hasClient}
       />
+
+      {/* Plan Actions Bar */}
+      {hasClient && projectId && (
+        <div className="px-4 py-2 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
+          <button
+            onClick={() => setShowPlanModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-md hover:bg-emerald-500/20 text-sm font-medium transition-colors"
+          >
+            <FileText size={14} />
+            Generate Plan
+          </button>
+          {projectId && (
+            <button
+              onClick={() => setShowPlanModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 text-slate-300 rounded-md hover:bg-white/10 text-sm font-medium transition-colors"
+            >
+              <Check size={14} />
+              Finalize & Create Milestones
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
@@ -128,6 +154,14 @@ export function MessageThread({
           onChange={onInputChange}
           onSend={onSend}
           disabled={!hasClient}
+        />
+      )}
+
+      {/* Plan Modal */}
+      {showPlanModal && projectId && (
+        <PlanModal
+          projectId={projectId}
+          onClose={() => setShowPlanModal(false)}
         />
       )}
     </div>

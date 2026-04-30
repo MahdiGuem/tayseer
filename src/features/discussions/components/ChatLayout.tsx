@@ -82,6 +82,7 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
               <MessageThread
                 clientName={selectedConversation?.clientName || ''}
                 projectTitle={selectedConversation?.projectTitle || ''}
+                projectId={selectedConversation?.projectId || ''}
                 loading={messagesLoading}
                 groupedMessages={groupedMessages}
                 inputValue={inputValue}
@@ -98,6 +99,7 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
         <MessageThread
           clientName={selectedConversation?.clientName || ''}
           projectTitle={selectedConversation?.projectTitle || ''}
+          projectId={selectedConversation?.projectId || ''}
           loading={messagesLoading}
           groupedMessages={groupedMessages}
           inputValue={inputValue}

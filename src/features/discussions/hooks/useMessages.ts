@@ -80,13 +80,16 @@ export function useMessages(projectId: string | null) {
     try {
       const newMessage = await createDevMessage(projectId, inputValue.trim())
       // Note: Real-time will also trigger, but we add optimistically
+      const createdAt = typeof newMessage.createdAt === 'string' 
+        ? newMessage.createdAt 
+        : new Date(newMessage.createdAt).toISOString()
       setMessages(prev => [...prev, {
         id: newMessage.id,
         projectId: newMessage.projectId,
         senderRole: newMessage.senderRole,
         senderName: newMessage.senderName,
         content: newMessage.content,
-        createdAt: newMessage.createdAt || new Date().toISOString()
+        createdAt
       }])
       setInputValue('')
     } catch (e) {

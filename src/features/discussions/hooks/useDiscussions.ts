@@ -24,11 +24,11 @@ export function useDiscussions() {
     getProjects()
       .then((projects: any[]) => {
         const convs: Conversation[] = projects.flatMap((p) => 
-          p.clients?.map((c: any) => ({
-            id: c.id,
-            clientId: c.id,
-            clientName: c.name || 'Unknown',
-            lastMessageAt: p.messages?.[p.messages.length - 1]?.createdAt || c.createdAt,
+          p.projectClients?.map((pc: any) => ({
+            id: pc.id,
+            clientId: pc.client?.id,
+            clientName: pc.client?.name || 'Unknown',
+            lastMessageAt: p.messages?.[p.messages.length - 1]?.createdAt || pc.createdAt,
             unreadCount: 0,
             projectTitle: p.title || 'Untitled',
             projectId: p.id

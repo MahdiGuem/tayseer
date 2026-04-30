@@ -7,13 +7,13 @@ export async function GET(
 ) {
   const { token } = await params
 
-  const client = await prisma.client.findUnique({
+  const projectClient = await prisma.projectClient.findUnique({
     where: { clientToken: token },
     include: {
+      client: true,
       project: {
         include: {
           milestones: { orderBy: { order: 'asc' } },
-          contracts: { orderBy: { createdAt: 'desc' }, take: 1 },
           invoices: {
             include: { items: true },
             orderBy: { createdAt: 'desc' }
@@ -24,23 +24,28 @@ export async function GET(
     }
   })
 
-  if (!client || !client.project) {
+  if (!projectClient || !projectClient.project) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 
+  const project = projectClient.project
+
   return NextResponse.json({
     client: {
-      id: client.id,
-      name: client.name,
-      platform: client.platform
+      id: projectClient.client.id,
+      name: projectClient.client.name,
+      platform: projectClient.client.platform
     },
     project: {
-      id: client.project.id,
-      title: client.project.title,
-      currency: client.project.currency,
-      status: client.project.status
+      id: project.id,
+      title: project.title,
+      currency: project.currency,
+      status: project.status,
+      planDescription: project.planDescription,
+      planMilestones: project.planMilestones as Array<{ label: string; amount: number; dueDate?: string }> | null,
+      isPlanFinalized: project.isPlanFinalized
     },
-    milestones: client.project.milestones.map(m => ({
+    milestones: project.milestones.map(m => ({
       id: m.id,
       label: m.label,
       amount: Number(m.amount),
@@ -48,13 +53,7 @@ export async function GET(
       isPaid: m.isPaid,
       order: m.order
     })),
-    contract: client.project.contracts[0] ? {
-      id: client.project.contracts[0].id,
-      content: client.project.contracts[0].content,
-      version: client.project.contracts[0].version,
-      createdAt: client.project.contracts[0].createdAt
-    } : null,
-    invoices: client.project.invoices.map(inv => ({
+    invoices: project.invoices.map(inv => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
       amount: Number(inv.amount),
@@ -68,7 +67,7 @@ export async function GET(
         amount: Number(item.amount)
       }))
     })),
-    messages: client.project.messages.map(msg => ({
+    messages: project.messages.map(msg => ({
       id: msg.id,
       senderRole: msg.senderRole,
       senderName: msg.senderName,

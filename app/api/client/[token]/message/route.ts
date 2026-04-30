@@ -13,20 +13,23 @@ export async function POST(
     return NextResponse.json({ error: 'Content is required' }, { status: 400 })
   }
 
-  const client = await prisma.client.findUnique({
+  const projectClient = await prisma.projectClient.findUnique({
     where: { clientToken: token },
-    include: { project: true }
+    include: { 
+      client: true,
+      project: true
+    }
   })
 
-  if (!client || !client.project) {
+  if (!projectClient || !projectClient.project) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 
   const message = await prisma.message.create({
     data: {
-      projectId: client.project.id,
+      projectId: projectClient.project.id,
       senderRole: 'CLIENT',
-      senderName: client.name,
+      senderName: projectClient.client.name,
       content: content.trim()
     }
   })

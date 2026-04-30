@@ -19,33 +19,45 @@ enum SenderRole {
 }
 
 model Project {
-  id        String        @id @default(uuid())
-  title     String
-  taxRate   Decimal       @default(0.00) @db.Decimal(5, 2)
-  status    ProjectStatus @default(DRAFT)
-  currency  String        @default("USD")
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  title          String
+  taxRate        Decimal       @default(0.00) @db.Decimal(5, 2)
+  status         ProjectStatus @default(DRAFT)
+  currency       String        @default("USD")
+  planDescription String?
+  planMilestones Json?
+  isPlanFinalized Boolean      @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  clients    Client[]
-  milestones Milestone[]
-  messages   Message[]
-  expenses   Expense[]
-  contracts  Contract[]
-  invoices   Invoice[]
-  agentLogs  AgentLog[]
+  projectClients ProjectClient[]
+  milestones    Milestone[]
+  messages       Message[]
+  expenses       Expense[]
+  invoices      Invoice[]
+  agentLogs     AgentLog[]
 }
 
 model Client {
   id          String   @id @default(uuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name        String
   email       String?
   platform    String?
-  clientToken String   @unique @default(cuid())
-
   createdAt   DateTime @default(now())
+
+  projectClients ProjectClient[]
+}
+
+model ProjectClient {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientToken String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, clientId])
 }
 
 model Milestone {
@@ -77,15 +89,6 @@ model Expense {
   amount      Decimal   @db.Decimal(12, 2)
   category    String?
   date        DateTime  @default(now())
-}
-
-model Contract {
-  id        String   @id @default(uuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  content   String   @db.Text
-  version   Int      @default(1)
-  createdAt DateTime @default(now())
 }
 
 model Invoice {
