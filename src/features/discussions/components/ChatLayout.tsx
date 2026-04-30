@@ -19,15 +19,17 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
     searchQuery,
     setSearchQuery,
     selectDiscussion,
+    loading
   } = useDiscussions()
 
   const {
     groupedMessages,
+    loading: messagesLoading,
     inputValue,
     setInputValue,
     sendMessage,
     markAsRead,
-  } = useMessages(selectedDiscussionId)
+  } = useMessages(selectedConversation?.projectId || null)
 
   useEffect(() => {
     if (selectedDiscussionId) {
@@ -35,26 +37,23 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
     }
   }, [selectedDiscussionId, markAsRead])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return
-    sendMessage()
+    await sendMessage()
     onToast?.("Message sent")
   }
 
   return (
-    <div
-      className={cn(
-        "flex h-full w-full border border-white/5 bg-white/[0.02] overflow-hidden",
-      )}
-    >
+    <div className={cn("flex h-full w-full border border-white/5 bg-white/[0.02]")}>
       {/* Conversation List - Left Sidebar */}
       <div className="w-72 flex-shrink-0 hidden md:flex border-r border-white/5">
         <ConversationList
-          conversations={conversations}
+          conversations={conversations as any}
           selectedDiscussionId={selectedDiscussionId}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSelect={selectDiscussion}
+          loading={loading}
         />
       </div>
 
@@ -62,15 +61,15 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
       <div className="md:hidden w-full flex">
         {!selectedDiscussionId ? (
           <ConversationList
-            conversations={conversations}
+            conversations={conversations as any}
             selectedDiscussionId={selectedDiscussionId}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onSelect={selectDiscussion}
+            loading={loading}
           />
         ) : (
           <div className="w-full flex flex-col">
-            {/* Mobile back button */}
             <div className="h-12 border-b border-white/5 flex items-center px-4 bg-white/[0.02]">
               <button
                 onClick={() => selectDiscussion("")}
@@ -81,8 +80,9 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
             </div>
             <div className="flex-1">
               <MessageThread
-                client={selectedConversation?.client || null}
-                projectCount={selectedConversation?.projectCount || 0}
+                clientName={selectedConversation?.clientName || ''}
+                projectTitle={selectedConversation?.projectTitle || ''}
+                loading={messagesLoading}
                 groupedMessages={groupedMessages}
                 inputValue={inputValue}
                 onInputChange={setInputValue}
@@ -96,8 +96,9 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
       {/* Message Thread - Right Area (Desktop) */}
       <div className="hidden md:flex flex-1">
         <MessageThread
-          client={selectedConversation?.client || null}
-          projectCount={selectedConversation?.projectCount || 0}
+          clientName={selectedConversation?.clientName || ''}
+          projectTitle={selectedConversation?.projectTitle || ''}
+          loading={messagesLoading}
           groupedMessages={groupedMessages}
           inputValue={inputValue}
           onInputChange={setInputValue}

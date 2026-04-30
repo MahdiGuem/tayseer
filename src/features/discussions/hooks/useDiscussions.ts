@@ -1,69 +1,64 @@
-'use client';
+'use client'
 
-import { useState, useMemo, useCallback } from 'react';
-import { discussions } from '@/src/data/mocks';
-import { projects } from '@/src/data/mocks';
-import type { Discussion, Client } from '@/src/types';
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { getProjects } from '@/app/actions/project'
 
-interface ConversationWithClient extends Discussion {
-  client: Client;
-  projectCount: number;
+interface Conversation {
+  id: string
+  clientId: string
+  clientName: string
+  lastMessageAt: string
+  unreadCount: number
+  isPinned?: boolean
+  projectTitle: string
+  projectId: string
 }
 
 export function useDiscussions() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDiscussionId, setSelectedDiscussionId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedDiscussionId, setSelectedDiscussionId] = useState<string | null>(null)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const conversations = useMemo<ConversationWithClient[]>(() => {
-    // Get all clients from projects (flatten and deduplicate by clientId)
-    const allClients = projects.flatMap((p) => p.clients);
-    const uniqueClients = new Map<string, Client>();
-    allClients.forEach((c) => uniqueClients.set(c.id, c));
-
-    // Map discussions to clients with project counts
-    return discussions
-      .map((disc) => {
-        const client = uniqueClients.get(disc.clientId);
-        if (!client) return null;
-        
-        const projectCount = projects.filter((p) =>
-          p.clients.some((c) => c.id === disc.clientId)
-        ).length;
-        
-        return {
-          ...disc,
-          client,
-          projectCount,
-        };
+  useEffect(() => {
+    getProjects()
+      .then((projects: any[]) => {
+        const convs: Conversation[] = projects.flatMap((p) => 
+          p.clients?.map((c: any) => ({
+            id: c.id,
+            clientId: c.id,
+            clientName: c.name || 'Unknown',
+            lastMessageAt: p.messages?.[p.messages.length - 1]?.createdAt || c.createdAt,
+            unreadCount: 0,
+            projectTitle: p.title || 'Untitled',
+            projectId: p.id
+          })) || []
+        )
+        // Sort by last message time
+        convs.sort((a, b) => 
+          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        )
+        setConversations(convs)
       })
-      .filter((item): item is ConversationWithClient => item !== null)
-      .sort((a, b) => {
-        // Pinned first, then by last message time
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
-      });
-  }, []);
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
 
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
-    const query = searchQuery.toLowerCase();
+    if (!searchQuery.trim()) return conversations
+    const query = searchQuery.toLowerCase()
     return conversations.filter((conv) =>
-      conv.client.name.toLowerCase().includes(query)
-    );
-  }, [conversations, searchQuery]);
+      conv.clientName.toLowerCase().includes(query)
+    )
+  }, [conversations, searchQuery])
 
   const selectedConversation = useMemo(() => {
-    return conversations.find((c) => c.id === selectedDiscussionId) || null;
-  }, [conversations, selectedDiscussionId]);
-
-  const totalUnreadCount = useMemo(() => {
-    return conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-  }, [conversations]);
+    return conversations.find((c) => c.id === selectedDiscussionId) || null
+  }, [conversations, selectedDiscussionId])
 
   const selectDiscussion = useCallback((id: string) => {
-    setSelectedDiscussionId(id);
-  }, []);
+    setSelectedDiscussionId(id || null)
+  }, [])
 
   return {
     conversations: filteredConversations,
@@ -72,6 +67,7 @@ export function useDiscussions() {
     searchQuery,
     setSearchQuery,
     selectDiscussion,
-    totalUnreadCount,
-  };
+    totalUnreadCount: 0,
+    loading
+  }
 }

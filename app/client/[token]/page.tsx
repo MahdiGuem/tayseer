@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Bot, Send, Loader2 } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Send, Loader2 } from 'lucide-react'
 import { cn } from '@/src/lib/utils/cn'
+import { supabase } from '@/lib/supabase'
 
 interface ClientData {
   client: {
@@ -16,27 +17,6 @@ interface ClientData {
     currency: string
     status: string
   }
-  milestones: Array<{
-    id: string
-    label: string
-    amount: number
-    dueDate: string | null
-    isPaid: boolean
-  }>
-  contract: {
-    id: string
-    content: string
-    version: number
-  } | null
-  invoices: Array<{
-    id: string
-    invoiceNumber: string
-    amount: number
-    currency: string
-    stage: number
-    dueDate: string | null
-    items: Array<{ description: string; amount: number }>
-  }>
   messages: Array<{
     id: string
     senderRole: 'DEV' | 'CLIENT'
@@ -44,6 +24,15 @@ interface ClientData {
     content: string
     createdAt: string
   }>
+}
+
+interface RealtimeMessage {
+  id: string
+  projectId: string
+  senderRole: 'DEV' | 'CLIENT'
+  senderName: string
+  content: string
+  createdAt: string
 }
 
 export default function ClientChatPage({ params }: { params: Promise<{ token: string }> }) {
@@ -59,6 +48,7 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
     params.then(p => setToken(p.token))
   }, [params])
 
+  // Fetch initial data
   useEffect(() => {
     if (!token) return
 
@@ -72,6 +62,57 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
       .finally(() => setLoading(false))
   }, [token])
 
+  // Handle new messages from realtime
+  const handleNewMessage = useCallback((newMsg: RealtimeMessage) => {
+    setData(prev => {
+      if (!prev) return prev
+      // Avoid duplicates
+      if (prev.messages.some(m => m.id === newMsg.id)) return prev
+      return {
+        ...prev,
+        messages: [...prev.messages, {
+          id: newMsg.id,
+          senderRole: newMsg.senderRole,
+          senderName: newMsg.senderName,
+          content: newMsg.content,
+          createdAt: newMsg.createdAt
+        }]
+      }
+    })
+  }, [])
+
+  // Subscribe to realtime
+  useEffect(() => {
+    if (!data?.project.id) return
+
+    const channel = supabase
+      .channel(`client-chat:${data.project.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'Message',
+          filter: `projectId=eq.${data.project.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as RealtimeMessage
+          handleNewMessage({
+            ...newMsg,
+            createdAt: typeof newMsg.createdAt === 'string' 
+              ? newMsg.createdAt 
+              : new Date().toISOString()
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [data?.project.id, handleNewMessage])
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [data?.messages])
@@ -89,6 +130,7 @@ export default function ClientChatPage({ params }: { params: Promise<{ token: st
       if (!res.ok) throw new Error('Failed to send')
 
       const newMsg = await res.json()
+      // Add to local state (realtime will also trigger but we add optimistically)
       setData(prev => prev ? {
         ...prev,
         messages: [...prev.messages, {

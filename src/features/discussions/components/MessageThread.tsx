@@ -4,24 +4,23 @@ import { useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
 import { ChatHeader } from "./ChatHeader"
-import type { Client } from "@/src/types"
+import { Loader2 } from "lucide-react"
 
 interface MessageGroup {
   date: string
   messages: Array<{
     id: string
-    discussionId: string
     senderRole: "DEV" | "CLIENT"
     senderName: string
     content: string
-    status: "sent" | "delivered" | "read"
     createdAt: string
   }>
 }
 
 interface MessageThreadProps {
-  client: Client | null
-  projectCount: number
+  clientName: string
+  projectTitle: string
+  loading?: boolean
   groupedMessages: MessageGroup[]
   inputValue: string
   onInputChange: (value: string) => void
@@ -29,8 +28,9 @@ interface MessageThreadProps {
 }
 
 export function MessageThread({
-  client,
-  projectCount,
+  clientName,
+  projectTitle,
+  loading,
   groupedMessages,
   inputValue,
   onInputChange,
@@ -59,29 +59,39 @@ export function MessageThread({
     })
   }
 
+  const hasClient = clientName.length > 0
+
   return (
     <div className="flex flex-col h-full w-full bg-black/20">
-      <ChatHeader client={client} projectCount={projectCount} />
+      <ChatHeader 
+        clientName={clientName} 
+        projectTitle={projectTitle} 
+        hasClient={hasClient}
+      />
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {client ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="animate-spin text-slate-500" size={24} />
+          </div>
+        ) : hasClient ? (
           groupedMessages.length > 0 ? (
             groupedMessages.map((group) => (
               <div key={group.date} className="space-y-2">
-                {/* Date Header */}
                 <div className="flex justify-center">
                   <span className="px-2 py-0.5 bg-white/5 rounded-full text-[10px] text-slate-500">
                     {formatDate(group.date)}
                   </span>
                 </div>
-
-                {/* Messages in group */}
                 {group.messages.map((message, messageIndex) => (
                   <MessageBubble
                     key={message.id}
-                    message={message}
-                    isLastInGroup={messageIndex === group.messages.length - 1}
+                    senderRole={message.senderRole}
+                    senderName={message.senderName}
+                    content={message.content}
+                    createdAt={message.createdAt}
+                    clientName={clientName}
                   />
                 ))}
               </div>
@@ -112,12 +122,12 @@ export function MessageThread({
       </div>
 
       {/* Input Area */}
-      {client && (
+      {hasClient && (
         <MessageInput
           value={inputValue}
           onChange={onInputChange}
           onSend={onSend}
-          disabled={!client}
+          disabled={!hasClient}
         />
       )}
     </div>

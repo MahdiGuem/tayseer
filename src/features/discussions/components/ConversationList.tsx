@@ -1,17 +1,18 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { Search, Loader2 } from 'lucide-react'
 import { ConversationItem } from './ConversationItem'
 import { cn } from '@/src/lib/utils/cn'
-import type { Client } from '@/src/types'
 
 interface Conversation {
   id: string
   clientId: string
+  clientName: string
   lastMessageAt: string
   unreadCount: number
   isPinned?: boolean
-  client: Client
+  projectTitle: string
+  projectId: string
 }
 
 interface ConversationListProps {
@@ -20,6 +21,7 @@ interface ConversationListProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onSelect: (id: string) => void
+  loading?: boolean
 }
 
 export function ConversationList({
@@ -28,18 +30,14 @@ export function ConversationList({
   searchQuery,
   onSearchChange,
   onSelect,
+  loading
 }: ConversationListProps) {
-  const pinnedConversations = conversations.filter((c) => c.isPinned)
-  const regularConversations = conversations.filter((c) => !c.isPinned)
-
   return (
     <div className="flex flex-col h-full w-full bg-white/[0.02]">
       {/* Compact Header */}
       <div className="h-12 border-b border-white/5 flex items-center justify-between px-3">
         <h2 className="font-medium text-white text-sm">Chats</h2>
-        <span className="text-xs text-slate-500">
-          {conversations.reduce((sum, c) => sum + c.unreadCount, 0)}
-        </span>
+        {loading && <Loader2 className="animate-spin text-slate-500" size={14} />}
       </div>
 
       {/* Search */}
@@ -67,51 +65,22 @@ export function ConversationList({
         {conversations.length === 0 ? (
           <div className="flex items-center justify-center h-full p-4">
             <p className="text-slate-500 text-xs text-center">
-              No conversations
+              {loading ? 'Loading...' : 'No conversations'}
             </p>
           </div>
         ) : (
-          <>
-            {pinnedConversations.length > 0 && (
-              <div className="px-2 py-1">
-                <div className="px-2 py-1 text-[10px] font-medium text-slate-500 uppercase">
-                  Pinned
-                </div>
-                {pinnedConversations.map((conv) => (
-                  <ConversationItem
-                    key={conv.id}
-                    client={conv.client}
-                    lastMessageAt={conv.lastMessageAt}
-                    unreadCount={conv.unreadCount}
-                    isPinned={conv.isPinned}
-                    isSelected={selectedDiscussionId === conv.id}
-                    onClick={() => onSelect(conv.id)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {regularConversations.length > 0 && (
-              <div className="px-2 py-1">
-                {pinnedConversations.length > 0 && (
-                  <div className="px-2 py-1 text-[10px] font-medium text-slate-500 uppercase">
-                    All
-                  </div>
-                )}
-                {regularConversations.map((conv) => (
-                  <ConversationItem
-                    key={conv.id}
-                    client={conv.client}
-                    lastMessageAt={conv.lastMessageAt}
-                    unreadCount={conv.unreadCount}
-                    isPinned={conv.isPinned}
-                    isSelected={selectedDiscussionId === conv.id}
-                    onClick={() => onSelect(conv.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          conversations.map((conv) => (
+            <ConversationItem
+              key={conv.id}
+              clientName={conv.clientName}
+              projectTitle={conv.projectTitle}
+              lastMessageAt={conv.lastMessageAt}
+              unreadCount={conv.unreadCount}
+              isPinned={conv.isPinned}
+              isSelected={selectedDiscussionId === conv.id}
+              onClick={() => onSelect(conv.id)}
+            />
+          ))
         )}
       </div>
     </div>

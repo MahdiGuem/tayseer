@@ -2,10 +2,10 @@
 
 import { Pin } from 'lucide-react'
 import { cn } from '@/src/lib/utils/cn'
-import type { Client } from '@/src/types'
 
 interface ConversationItemProps {
-  client: Client
+  clientName: string
+  projectTitle: string
   lastMessageAt: string
   unreadCount: number
   isPinned?: boolean
@@ -14,7 +14,8 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({
-  client,
+  clientName,
+  projectTitle,
   lastMessageAt,
   unreadCount,
   isPinned,
@@ -48,7 +49,7 @@ export function ConversationItem({
       {/* Avatar - Smaller */}
       <div className="relative flex-shrink-0">
         <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-xs font-medium text-slate-200">
-          {client.name.charAt(0)}
+          {clientName.charAt(0)}
         </div>
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-emerald-500 rounded-full flex items-center justify-center text-[9px] font-medium text-black">
@@ -66,7 +67,7 @@ export function ConversationItem({
               unreadCount > 0 ? 'text-white' : 'text-slate-300'
             )}
           >
-            {client.name}
+            {clientName}
           </h4>
           <span className="text-[10px] text-slate-500 flex-shrink-0">
             {timeAgo(lastMessageAt)}
@@ -80,7 +81,7 @@ export function ConversationItem({
               unreadCount > 0 ? 'text-slate-300' : 'text-slate-500'
             )}
           >
-            {unreadCount > 0 ? `${unreadCount} new` : 'No messages'}
+            {projectTitle}
           </p>
 
           {isPinned && (

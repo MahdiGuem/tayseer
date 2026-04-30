@@ -1,81 +1,110 @@
-'use client';
+'use client'
 
-import { useState, useMemo, useCallback } from 'react';
-import { discussionMessages } from '@/src/data/mocks';
-import type { DiscussionMessage, SenderRole } from '@/src/types';
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { getMessages, createDevMessage } from '@/app/actions/message'
+import { useRealtimeMessages } from '@/src/hooks/useRealtimeMessages'
 
-interface MessageGroup {
-  date: string;
-  messages: DiscussionMessage[];
+interface Message {
+  id: string
+  projectId: string
+  senderRole: 'DEV' | 'CLIENT'
+  senderName: string
+  content: string
+  createdAt: string
 }
 
-export function useMessages(discussionId: string | null) {
-  const [messages, setMessages] = useState<DiscussionMessage[]>(discussionMessages);
-  const [inputValue, setInputValue] = useState('');
+interface MessageGroup {
+  date: string
+  messages: Message[]
+}
 
-  const discussionMessages_filtered = useMemo(() => {
-    if (!discussionId) return [];
-    return messages
-      .filter((m) => m.discussionId === discussionId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [messages, discussionId]);
+export function useMessages(projectId: string | null) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [loading, setLoading] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+
+  // Fetch initial messages
+  useEffect(() => {
+    if (!projectId) {
+      setMessages([])
+      return
+    }
+    
+    setLoading(true)
+    getMessages(projectId)
+      .then((data: any[]) => {
+        setMessages(data || [])
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [projectId])
+
+  // Handle new incoming messages via realtime
+  const handleNewMessage = useCallback((newMessage: Message) => {
+    setMessages(prev => {
+      // Avoid duplicates
+      if (prev.some(m => m.id === newMessage.id)) return prev
+      return [...prev, newMessage]
+    })
+  }, [])
+
+  // Subscribe to realtime updates
+  useRealtimeMessages({
+    projectId,
+    onNewMessage: handleNewMessage
+  })
 
   const groupedMessages = useMemo<MessageGroup[]>(() => {
-    const groups: MessageGroup[] = [];
-    let currentGroup: MessageGroup | null = null;
+    const groups: MessageGroup[] = []
+    let currentGroup: MessageGroup | null = null
 
-    discussionMessages_filtered.forEach((message) => {
+    messages.forEach((message) => {
       const date = new Date(message.createdAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
-      });
+      })
 
       if (!currentGroup || currentGroup.date !== date) {
-        currentGroup = { date, messages: [] };
-        groups.push(currentGroup);
+        currentGroup = { date, messages: [] }
+        groups.push(currentGroup)
       }
-      currentGroup.messages.push(message);
-    });
+      currentGroup.messages.push(message)
+    })
 
-    return groups;
-  }, [discussionMessages_filtered]);
+    return groups
+  }, [messages])
 
-  const sendMessage = useCallback(() => {
-    if (!inputValue.trim() || !discussionId) return;
+  const sendMessage = useCallback(async () => {
+    if (!inputValue.trim() || !projectId) return
 
-    const newMessage: DiscussionMessage = {
-      id: `dm-${Date.now()}`,
-      discussionId,
-      senderRole: 'DEV' as SenderRole,
-      senderName: 'You',
-      content: inputValue.trim(),
-      status: 'sent',
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    setInputValue('');
-  }, [inputValue, discussionId]);
+    try {
+      const newMessage = await createDevMessage(projectId, inputValue.trim())
+      // Note: Real-time will also trigger, but we add optimistically
+      setMessages(prev => [...prev, {
+        id: newMessage.id,
+        projectId: newMessage.projectId,
+        senderRole: newMessage.senderRole,
+        senderName: newMessage.senderName,
+        content: newMessage.content,
+        createdAt: newMessage.createdAt || new Date().toISOString()
+      }])
+      setInputValue('')
+    } catch (e) {
+      console.error('Failed to send message:', e)
+    }
+  }, [inputValue, projectId])
 
   const markAsRead = useCallback(() => {
-    if (!discussionId) return;
-    
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.discussionId === discussionId && m.senderRole === 'CLIENT' && m.status !== 'read'
-          ? { ...m, status: 'read' }
-          : m
-      )
-    );
-  }, [discussionId]);
+    // Mark all client messages as read - for future implementation
+  }, [])
 
   return {
-    messages: discussionMessages_filtered,
+    messages,
     groupedMessages,
+    loading,
     inputValue,
     setInputValue,
     sendMessage,
     markAsRead,
-  };
+  }
 }
