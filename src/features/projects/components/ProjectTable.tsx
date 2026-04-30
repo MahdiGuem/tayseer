@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/src/components/ui/Badge'
 import { formatCurrency } from '@/src/lib/utils/currency'
 import { cn } from '@/src/lib/utils/cn'
-import { useProjects, useCreateProject } from '@/src/hooks/useProjects'
+import { useProjects, useCreateProject, useUpdateProject } from '@/src/hooks/useProjects'
 import { useCreateMilestone, useMarkMilestonePaid } from '@/src/hooks/useMilestones'
 
 interface ProjectTableProps {
@@ -41,6 +41,18 @@ export function ProjectTable({ filter, onToast }: ProjectTableProps) {
       setReleasing(null)
       onToast?.('Funds released successfully!')
     }, 2000)
+  }
+
+  const { update } = useUpdateProject()
+  
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      await update(id, { status })
+      refetch()
+      onToast?.(`Status updated to ${status}`)
+    } catch (e) {
+      onToast?.('Failed to update status')
+    }
   }
 
   if (loading) {
@@ -90,6 +102,7 @@ export function ProjectTable({ filter, onToast }: ProjectTableProps) {
                 onShowEvidence={setShowEvidence}
                 onToast={onToast}
                 refetch={refetch}
+                onStatusChange={handleStatusChange}
               />
             ))}
           </tbody>
@@ -109,6 +122,7 @@ interface ProjectRowProps {
   onShowEvidence: (id: string | null) => void
   onToast?: (message: string) => void
   refetch: () => void
+  onStatusChange: (id: string, status: string) => void
 }
 
 function ProjectRow({
@@ -120,7 +134,8 @@ function ProjectRow({
   onForceRelease,
   onShowEvidence,
   onToast,
-  refetch
+  refetch,
+  onStatusChange
 }: ProjectRowProps) {
   const { create: createMilestone, loading: creatingMilestone } = useCreateMilestone()
   const { markPaid } = useMarkMilestonePaid()
@@ -179,7 +194,22 @@ function ProjectRow({
           </div>
         </td>
         <td className="px-6 py-4">
-          <Badge status={statusMap[project.status] || 'pending'} />
+          <select
+            value={project.status}
+            onChange={(e) => onStatusChange(project.id, e.target.value)}
+            className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer outline-none ${
+              project.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+              project.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+              project.status === 'DRAFT' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+              project.status === 'ARCHIVED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
+              'bg-slate-500/10 text-slate-400 border-slate-500/20'
+            }`}
+          >
+            <option value="DRAFT">Draft</option>
+            <option value="ACTIVE">Active</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
         </td>
         <td className="px-6 py-4 font-medium">{formatCurrency(totalValue, project.currency)}</td>
         <td className="px-6 py-4 text-right">

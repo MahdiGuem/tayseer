@@ -298,10 +298,13 @@ export async function finalizePlan(projectId: string) {
     }))
   })
 
-  // Mark plan as finalized
+  // Mark plan as finalized and set status to ACTIVE
   await prisma.project.update({
     where: { id: projectId },
-    data: { isPlanFinalized: true }
+    data: { 
+      isPlanFinalized: true,
+      status: 'ACTIVE'
+    }
   })
 
   await prisma.agentLog.create({
