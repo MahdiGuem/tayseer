@@ -12,10 +12,6 @@ import {
 import { tayseerAgent } from "./agents/tayseer-agent";
 
 export const mastra = new Mastra({
-  server: {
-    host: "0.0.0.0", // Binds to all network interfaces
-    port: 4111,
-  },
   agents: { tayseerAgent },
   storage: new MastraCompositeStore({
     id: "composite-storage",

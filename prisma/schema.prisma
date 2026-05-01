@@ -24,26 +24,33 @@ model Project {
   taxRate   Decimal       @default(0.00) @db.Decimal(5, 2)
   status    ProjectStatus @default(DRAFT)
   currency  String        @default("USD")
-  contract  Json?         // { description, milestones: [], clientNames: [], devName, createdAt, status: 'draft'|'sent'|'confirmed' }
+  contract  Json?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
   projectClients ProjectClient[]
-  milestones    Milestone[]
-  messages      Message[]
-  expenses      Expense[]
-  invoices     Invoice[]
-  agentLogs    AgentLog[]
+  milestones     Milestone[]
+  messages       Message[]
+  expenses       Expense[]
+  invoices       Invoice[]
+  agentLogs      AgentLog[]
+
+  @@index([status])                   // filter projects by status
+  @@index([createdAt])                // sort / paginate by creation date
+  @@index([status, createdAt])        // combined: active projects, newest first
 }
 
 model Client {
-  id          String   @id @default(uuid())
-  name        String
-  email       String?
-  platform    String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  platform  String?
+  createdAt DateTime @default(now())
 
   projectClients ProjectClient[]
+
+  @@index([email])                    // lookup client by email
+  @@index([platform])                 // filter clients by platform
 }
 
 model ProjectClient {
@@ -56,6 +63,8 @@ model ProjectClient {
   createdAt   DateTime @default(now())
 
   @@unique([projectId, clientId])
+  @@index([projectId])                // fetch all clients for a project
+  @@index([clientId])                 // fetch all projects for a client
 }
 
 model Milestone {
@@ -67,6 +76,11 @@ model Milestone {
   dueDate   DateTime?
   isPaid    Boolean   @default(false)
   order     Int       @default(0)
+
+  @@index([projectId])                // fetch all milestones for a project
+  @@index([projectId, isPaid])        // fetch unpaid milestones per project
+  @@index([projectId, order])         // fetch milestones in display order
+  @@index([dueDate])                  // query overdue / upcoming milestones
 }
 
 model Message {
@@ -77,22 +91,30 @@ model Message {
   senderName String
   content    String     @db.Text
   createdAt  DateTime   @default(now())
+
+  @@index([projectId, createdAt])     // fetch project messages chronologically
+  @@index([projectId, senderRole])    // filter messages by sender type
 }
 
 model Expense {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   description String
-  amount      Decimal   @db.Decimal(12, 2)
+  amount      Decimal  @db.Decimal(12, 2)
   category    String?
-  date        DateTime  @default(now())
+  date        DateTime @default(now())
+
+  @@index([projectId])                // fetch all expenses for a project
+  @@index([projectId, date])          // expenses for a project over a date range
+  @@index([category])                 // filter / group expenses by category
+  @@index([date])                     // global date-range expense reports
 }
 
 model Invoice {
   id            String        @id @default(uuid())
   projectId     String
-  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   invoiceNumber String        @unique
   amount        Decimal       @db.Decimal(12, 2)
   currency      String        @default("USD")
@@ -100,6 +122,10 @@ model Invoice {
   dueDate       DateTime?
   items         InvoiceItem[]
   createdAt     DateTime      @default(now())
+
+  @@index([projectId])                // fetch all invoices for a project
+  @@index([projectId, stage])         // filter invoices by payment stage
+  @@index([dueDate])                  // query overdue invoices globally
 }
 
 model InvoiceItem {
@@ -108,6 +134,8 @@ model InvoiceItem {
   invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   description String
   amount      Decimal @db.Decimal(12, 2)
+
+  @@index([invoiceId])                // fetch all line items for an invoice
 }
 
 model AgentLog {
@@ -118,4 +146,9 @@ model AgentLog {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   severity  String
   createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])     // fetch project logs chronologically
+  @@index([severity])                 // filter logs by severity globally
+  @@index([severity, createdAt])      // error/warning log timeline
+  @@index([action])                   // filter logs by action type
 }
