@@ -16,7 +16,7 @@ export default function ProjectsPage() {
   const { refetch } = useProjects()
   const { clients, refetch: refetchClients } = useClients()
   const { create, loading: creating } = useCreateProject()
-  const { create: createClient, loading: creatingClient } = useCreateClient()
+  const { create: createClient, loading: creatingClient, findByName } = useCreateClient()
   
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
@@ -56,6 +56,17 @@ export default function ProjectsPage() {
     if (!newClientName.trim()) return
     
     try {
+      const existingClient = await findByName(newClientName)
+      if (existingClient) {
+        if (!selectedClientIds.includes(existingClient.id)) {
+          setSelectedClientIds([...selectedClientIds, existingClient.id])
+        }
+        setNewClientName('')
+        setShowNewClient(false)
+        addToast('Client selected', 'success')
+        return
+      }
+      
       const client = await createClient({ name: newClientName })
       setSelectedClientIds([...selectedClientIds, client.id])
       refetchClients()

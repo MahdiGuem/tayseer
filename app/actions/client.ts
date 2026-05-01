@@ -57,6 +57,19 @@ export async function createClient(data: { name: string; email?: string; platfor
   }
 }
 
+export async function getClientByName(name: string) {
+  const normalizedName = name.trim().toLowerCase()
+  const clients = await prisma.client.findMany({
+    where: {
+      name: {
+        equals: normalizedName,
+        mode: 'insensitive'
+      }
+    }
+  })
+  return clients.length > 0 ? clients[0] : null
+}
+
 export async function updateClient(id: string, data: { name?: string; email?: string; platform?: string }) {
   const updateData: Record<string, unknown> = {}
   if (data.name !== undefined) updateData.name = data.name
@@ -154,11 +167,10 @@ export async function getClientByToken(token: string) {
     project: {
       id: project.id,
       title: project.title,
+      taxRate: project.taxRate ? Number(project.taxRate) : 0,
       currency: project.currency,
       status: project.status,
-      planDescription: project.planDescription,
-      planMilestones: project.planMilestones as Array<{ label: string; amount: number; dueDate?: string }> | null,
-      isPlanFinalized: project.isPlanFinalized,
+      contract: project.contract as any,
       milestones: project.milestones.map(m => ({
         id: m.id,
         projectId: m.projectId,

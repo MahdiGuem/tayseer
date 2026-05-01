@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { createDevMessage } from '@/app/actions/message'
 
 interface RealtimeMessage {
   id: string
@@ -19,9 +18,20 @@ interface UseRealtimeMessagesOptions {
 }
 
 export function useRealtimeMessages({ projectId, onNewMessage }: UseRealtimeMessagesOptions) {
-  useEffect(() => {
-    if (!projectId) return
+  const onNewMessageRef = useRef(onNewMessage)
+  const subscriptionRef = useRef<any>(null)
+  
+  onNewMessageRef.current = onNewMessage
 
+  useEffect(() => {
+    if (!projectId) {
+      console.log('[useRealtimeMessages] No projectId, skipping subscription')
+      return
+    }
+
+    let isStale = false
+
+    // Subscribe to realtime updates on the messages table
     const channel = supabase
       .channel(`messages:${projectId}`)
       .on(
@@ -29,58 +39,41 @@ export function useRealtimeMessages({ projectId, onNewMessage }: UseRealtimeMess
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'Message',
-          filter: `projectId=eq.${projectId}`,
+          table: 'message',
+          filter: `projectId=eq.${projectId}`
         },
-        (payload) => {
-          const newMessage = payload.new as RealtimeMessage
-          // Convert Date to string if needed
-          const message: RealtimeMessage = {
-            ...newMessage,
-            createdAt: typeof newMessage.createdAt === 'string' 
-              ? newMessage.createdAt 
-              : new Date().toISOString()
+        (payload: any) => {
+          if (isStale) return
+          
+          console.log('[useRealtimeMessages] New message received:', payload.new)
+          
+          const newMessage = payload.new
+          if (onNewMessageRef.current) {
+            onNewMessageRef.current({
+              id: newMessage.id,
+              projectId: newMessage.projectId,
+              senderRole: newMessage.senderRole,
+              senderName: newMessage.senderName,
+              content: newMessage.content,
+              createdAt: newMessage.createdAt instanceof Date 
+                ? newMessage.createdAt.toISOString() 
+                : newMessage.createdAt
+            })
           }
-          onNewMessage?.(message)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log(`[useRealtimeMessages] Subscription status: ${status}`)
+      })
+
+    subscriptionRef.current = channel
 
     return () => {
-      supabase.removeChannel(channel)
+      isStale = true
+      console.log('[useRealtimeMessages] Cleaning up subscription for projectId:', projectId)
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current)
+      }
     }
-  }, [projectId, onNewMessage])
-}
-
-// For client-side realtime - subscribes to all messages for a project via client token
-export function useClientRealtime(clientToken: string, onNewMessage: (message: RealtimeMessage) => void) {
-  useEffect(() => {
-    if (!clientToken) return
-
-    const channel = supabase
-      .channel(`client-messages:${clientToken}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'Message',
-        },
-        (payload) => {
-          const newMessage = payload.new as RealtimeMessage
-          const message: RealtimeMessage = {
-            ...newMessage,
-            createdAt: typeof newMessage.createdAt === 'string' 
-              ? newMessage.createdAt 
-              : new Date().toISOString()
-          }
-          onNewMessage(message)
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [clientToken, onNewMessage])
+  }, [projectId])
 }

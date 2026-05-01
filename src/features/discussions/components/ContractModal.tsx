@@ -1,47 +1,57 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Loader2, Download } from 'lucide-react'
-import { getProject } from '@/app/actions/project'
-import { savePlan, finalizePlan } from '@/app/actions/project'
+import { X, Plus, Trash2, Loader2, Send } from 'lucide-react'
+import { getProjectWithContract, saveContract, sendContract } from '@/app/actions/contract'
 import { useToast } from '@/src/hooks/useToast'
-import { DownloadPlanPDF } from '@/src/components/PlanPDF'
 
-interface PlanMilestone {
+interface ContractMilestone {
   label: string
   amount: number
   dueDate: string
 }
 
-interface PlanModalProps {
+interface ContractData {
+  description: string
+  milestones: ContractMilestone[]
+  clientNames: string[]
+  devName: string
+  createdAt: string
+  status: 'draft' | 'sent' | 'confirmed'
+}
+
+interface ContractModalProps {
   projectId: string
   onClose: () => void
 }
 
-export function PlanModal({ projectId, onClose }: PlanModalProps) {
+export function ContractModal({ projectId, onClose }: ContractModalProps) {
   const { addToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [finalizing, setFinalizing] = useState(false)
+  const [sending, setSending] = useState(false)
   const [project, setProject] = useState<any>(null)
   
   const [description, setDescription] = useState('')
-  const [milestones, setMilestones] = useState<PlanMilestone[]>([
+  const [milestones, setMilestones] = useState<ContractMilestone[]>([
     { label: '', amount: 0, dueDate: '' }
   ])
 
   useEffect(() => {
-    getProject(projectId).then(p => {
+    getProjectWithContract(projectId).then(p => {
       if (p) {
         setProject(p)
-        if (p.planDescription) setDescription(p.planDescription)
-        const milestones = p.planMilestones as any[]
-        if (milestones && milestones.length > 0) {
-          setMilestones(milestones.map((m: any) => ({
-            label: m.label || '',
-            amount: m.amount || 0,
-            dueDate: m.dueDate || ''
-          })))
+        const contract = p.contract as ContractData | null
+        
+        if (contract) {
+          setDescription(contract.description || '')
+          if (contract.milestones && contract.milestones.length > 0) {
+            setMilestones(contract.milestones.map((m: any) => ({
+              label: m.label || '',
+              amount: m.amount || 0,
+              dueDate: m.dueDate || ''
+            })))
+          }
         }
       }
       setLoading(false)
@@ -56,7 +66,7 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
     setMilestones(milestones.filter((_, i) => i !== index))
   }
 
-  const updateMilestone = (index: number, field: keyof PlanMilestone, value: string | number) => {
+  const updateMilestone = (index: number, field: keyof ContractMilestone, value: string | number) => {
     const updated = [...milestones]
     updated[index] = { ...updated[index], [field]: value }
     setMilestones(updated)
@@ -68,52 +78,58 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
       return
     }
 
+    const clientNames = project?.projectClients?.map((pc: any) => pc.client?.name).filter(Boolean) || []
+    
+    const contractData = {
+      description: description.trim(),
+      milestones: milestones.filter(m => m.label.trim()),
+      clientNames,
+      devName: 'Mahdi'
+    }
+
     setSaving(true)
     try {
-      await savePlan(projectId, {
-        description: description.trim(),
-        milestones: milestones.filter(m => m.label.trim())
-      })
-      addToast('Plan saved', 'success')
-      onClose()
+      await saveContract(projectId, contractData)
+      addToast('Contract saved', 'success')
     } catch (e) {
-      addToast('Failed to save plan', 'error')
+      addToast('Failed to save contract', 'error')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleFinalize = async () => {
-    if (!description.trim() || milestones.every(m => !m.label)) {
-      addToast('Add description and milestones before finalizing', 'error')
+  const handleSaveAndSend = async () => {
+    if (!description.trim() && milestones.every(m => !m.label)) {
+      addToast('Add a description or at least one milestone', 'error')
       return
     }
 
-    if (project?.isPlanFinalized) {
-      addToast('Plan already finalized', 'error')
-      return
+    const clientNames = project?.projectClients?.map((pc: any) => pc.client?.name).filter(Boolean) || []
+    
+    const contractData = {
+      description: description.trim(),
+      milestones: milestones.filter(m => m.label.trim()),
+      clientNames,
+      devName: 'Mahdi'
     }
 
-    setFinalizing(true)
+    setSending(true)
     try {
-      // First save
-      await savePlan(projectId, {
-        description: description.trim(),
-        milestones: milestones.filter(m => m.label.trim())
-      })
-      // Then finalize
-      await finalizePlan(projectId)
-      addToast('Plan finalized - Milestones created!', 'success')
+      await saveContract(projectId, contractData)
+      await sendContract(projectId)
+      addToast('Contract sent to client', 'success')
       onClose()
     } catch (e: any) {
-      addToast(e.message || 'Failed to finalize plan', 'error')
+      addToast(e.message || 'Failed to send contract', 'error')
     } finally {
-      setFinalizing(false)
+      setSending(false)
     }
   }
 
   const totalAmount = milestones.reduce((sum, m) => sum + (m.amount || 0), 0)
-  const isFinalized = project?.isPlanFinalized
+  const contract = project?.contract as ContractData | null
+  const isSent = contract?.status === 'sent' || contract?.status === 'confirmed'
+  const isConfirmed = contract?.status === 'confirmed'
 
   if (loading) {
     return (
@@ -128,21 +144,40 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
       <div className="w-full max-w-lg bg-black border border-white/10 rounded-lg p-6 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">
-            {isFinalized ? 'View Plan' : 'Generate Plan'}
+            {isSent ? 'View Contract' : 'Edit Contract'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
 
-        {isFinalized && (
-          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-            <p className="text-emerald-400 text-sm font-medium">Plan Finalized</p>
-            <p className="text-slate-400 text-xs mt-1">
-              Milestones have been created and cannot be changed.
+        {isSent && (
+          <div className={`mb-4 p-3 rounded-lg border ${
+            isConfirmed 
+              ? 'bg-emerald-500/10 border-emerald-500/20' 
+              : 'bg-yellow-500/10 border-yellow-500/20'
+          }`}>
+            <p className={isConfirmed ? 'text-emerald-400' : 'text-yellow-400'} style={{fontSize: '14px', fontWeight: '500'}}>
+              {isConfirmed ? 'Confirmed' : 'Waiting for confirmation'}
             </p>
           </div>
         )}
+
+        {/* Client Names (read-only) */}
+        {project?.projectClients && (
+          <div className="mb-4">
+            <label className="block text-sm text-slate-400 mb-2">Clients</label>
+            <div className="bg-white/5 rounded-lg px-4 py-2 text-white text-sm">
+              {project.projectClients.map((pc: any) => pc.client?.name).join(', ')}
+            </div>
+          </div>
+        )}
+
+        {/* Dev Name */}
+        <div className="mb-4">
+          <label className="block text-sm text-slate-400 mb-2">Developer</label>
+          <div className="bg-white/5 rounded-lg px-4 py-2 text-white text-sm">Mahdi</div>
+        </div>
 
         {/* Description */}
         <div className="mb-6">
@@ -150,7 +185,7 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            disabled={isFinalized}
+            disabled={isSent}
             placeholder="Describe the project scope and deliverables..."
             className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-slate-500 outline-none focus:border-emerald-500/50 resize-none h-24"
           />
@@ -173,7 +208,7 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
                     type="text"
                     value={milestone.label}
                     onChange={(e) => updateMilestone(index, 'label', e.target.value)}
-                    disabled={isFinalized}
+                    disabled={isSent}
                     placeholder="Milestone name"
                     className="bg-black border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 text-sm outline-none focus:border-emerald-500/50"
                   />
@@ -182,7 +217,7 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
                       type="number"
                       value={milestone.amount || ''}
                       onChange={(e) => updateMilestone(index, 'amount', Number(e.target.value))}
-                      disabled={isFinalized}
+                      disabled={isSent}
                       placeholder="Amount"
                       className="bg-black border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-slate-500 text-sm outline-none focus:border-emerald-500/50 w-28"
                     />
@@ -190,12 +225,12 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
                       type="date"
                       value={milestone.dueDate}
                       onChange={(e) => updateMilestone(index, 'dueDate', e.target.value)}
-                      disabled={isFinalized}
+                      disabled={isSent}
                       className="bg-black border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-emerald-500/50"
                     />
                   </div>
                 </div>
-                {!isFinalized && milestones.length > 1 && (
+                {!isSent && milestones.length > 1 && (
                   <button
                     onClick={() => removeMilestone(index)}
                     className="p-2 text-slate-400 hover:text-red-400 transition-colors"
@@ -207,7 +242,7 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
             ))}
           </div>
 
-          {!isFinalized && (
+          {!isSent && (
             <button
               onClick={addMilestone}
               className="mt-3 flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300"
@@ -218,42 +253,27 @@ export function PlanModal({ projectId, onClose }: PlanModalProps) {
           )}
         </div>
 
-        {/* Existing Milestones (from finalized plan) */}
-        {project?.milestones && project.milestones.length > 0 && (
-          <div className="mb-6 p-3 bg-white/5 rounded-lg">
-            <p className="text-sm text-slate-400 mb-2">Created Milestones</p>
-            <div className="space-y-2">
-              {project.milestones.map((m: any) => (
-                <div key={m.id} className="flex justify-between text-sm">
-                  <span className="text-white">{m.label}</span>
-                  <span className="text-slate-400">${m.amount?.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Actions */}
-        {!isFinalized && (
+        {!isSent ? (
           <div className="flex gap-3">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-white/5 text-slate-200 font-medium rounded-md border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-white/5 text-slate-200 font-medium rounded-md border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {saving ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'Save Plan'}
+              {saving ? <Loader2 className="animate-spin" size={16} /> : null}
+              Save
             </button>
             <button
-              onClick={handleFinalize}
-              disabled={finalizing}
-              className="flex-1 px-4 py-2 bg-emerald-500 text-black font-medium rounded-md hover:bg-emerald-400 transition-all disabled:opacity-50"
+              onClick={handleSaveAndSend}
+              disabled={sending}
+              className="flex-1 px-4 py-2 bg-emerald-500 text-black font-medium rounded-md hover:bg-emerald-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {finalizing ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'Finalize'}
+              {sending ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+              Save & Send
             </button>
           </div>
-        )}
-
-        {isFinalized && (
+        ) : (
           <button
             onClick={onClose}
             className="w-full px-4 py-2 bg-white/5 text-slate-200 font-medium rounded-md border border-white/10 hover:bg-white/10 transition-all"

@@ -21,8 +21,10 @@ export function useDiscussions() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('[useDiscussions] Fetching initial conversations')
     getProjects()
       .then((projects: any[]) => {
+        console.log('[useDiscussions] Projects loaded:', projects.length)
         const convs: Conversation[] = projects.flatMap((p) => 
           p.projectClients?.map((pc: any) => ({
             id: pc.id,
@@ -38,9 +40,12 @@ export function useDiscussions() {
         convs.sort((a, b) => 
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         )
+        console.log('[useDiscussions] Conversations prepared:', convs.length)
         setConversations(convs)
       })
-      .catch(console.error)
+      .catch(e => {
+        console.error('[useDiscussions] Error fetching projects:', e)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -57,6 +62,7 @@ export function useDiscussions() {
   }, [conversations, selectedDiscussionId])
 
   const selectDiscussion = useCallback((id: string) => {
+    console.log('[useDiscussions] Selected discussion:', id)
     setSelectedDiscussionId(id || null)
   }, [])
 

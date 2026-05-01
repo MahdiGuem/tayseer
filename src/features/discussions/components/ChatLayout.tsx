@@ -5,7 +5,6 @@ import { ConversationList } from "./ConversationList"
 import { MessageThread } from "./MessageThread"
 import { useDiscussions } from "../hooks/useDiscussions"
 import { useMessages } from "../hooks/useMessages"
-import { cn } from "@/src/lib/utils/cn"
 
 interface ChatLayoutProps {
   onToast?: (message: string) => void
@@ -44,9 +43,9 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
   }
 
   return (
-    <div className={cn("flex h-full w-full border border-white/5 bg-white/[0.02]")}>
+    <div className="flex h-full w-full min-h-0 overflow-hidden">
       {/* Conversation List - Left Sidebar */}
-      <div className="w-72 flex-shrink-0 hidden md:flex border-r border-white/5">
+      <div className="w-72 shrink-0 hidden md:flex border-r border-white/5 overflow-hidden">
         <ConversationList
           conversations={conversations as any}
           selectedDiscussionId={selectedDiscussionId}
@@ -58,7 +57,7 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
       </div>
 
       {/* Mobile: Show conversation list or thread */}
-      <div className="md:hidden w-full flex">
+      <div className="md:hidden w-full flex min-h-0 overflow-hidden">
         {!selectedDiscussionId ? (
           <ConversationList
             conversations={conversations as any}
@@ -69,8 +68,8 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
             loading={loading}
           />
         ) : (
-          <div className="w-full flex flex-col">
-            <div className="h-12 border-b border-white/5 flex items-center px-4 bg-white/[0.02]">
+          <div className="w-full flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="h-12 shrink-0 border-b border-white/5 flex items-center px-4 bg-white/[0.02]">
               <button
                 onClick={() => selectDiscussion("")}
                 className="text-slate-400 hover:text-white transition-colors text-sm"
@@ -78,7 +77,7 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
                 ← Back
               </button>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <MessageThread
                 clientName={selectedConversation?.clientName || ''}
                 projectTitle={selectedConversation?.projectTitle || ''}
@@ -95,7 +94,7 @@ export function ChatLayout({ onToast }: ChatLayoutProps) {
       </div>
 
       {/* Message Thread - Right Area (Desktop) */}
-      <div className="hidden md:flex flex-1">
+      <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
         <MessageThread
           clientName={selectedConversation?.clientName || ''}
           projectTitle={selectedConversation?.projectTitle || ''}

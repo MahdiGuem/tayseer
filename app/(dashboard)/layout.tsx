@@ -18,7 +18,7 @@ export default function DashboardLayout({
   const { toasts, addToast, removeToast } = useToast();
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
@@ -38,7 +38,7 @@ export default function DashboardLayout({
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col p-6 overflow-auto">
+        <main className="flex-1 flex flex-col p-6 overflow-hidden">
           {/* Loading */}
           <AnimatePresence>
             {isLoading && (
