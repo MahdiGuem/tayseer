@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useRef, useState } from "react"
 import { MessageBubble } from "./MessageBubble"
 import { MessageInput } from "./MessageInput"
@@ -86,9 +85,8 @@ export function MessageThread({
         hasClient={hasClient}
       />
 
-      {/* Contract Actions Bar */}
       {hasClient && projectId && (
-        <div className="px-4 py-2 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
+        <div className="shrink-0 px-4 py-2 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
           <button
             onClick={() => setShowContractModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-md hover:bg-emerald-500/20 text-sm font-medium transition-colors"
@@ -99,8 +97,7 @@ export function MessageThread({
         </div>
       )}
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin text-slate-500" size={24} />
@@ -114,7 +111,7 @@ export function MessageThread({
                     {formatDate(group.date)}
                   </span>
                 </div>
-                {group.messages.map((message, messageIndex) => (
+                {group.messages.map((message) => (
                   <MessageBubble
                     key={message.id}
                     senderRole={message.senderRole}
@@ -151,7 +148,6 @@ export function MessageThread({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       {hasClient && (
         <MessageInput
           value={inputValue}
@@ -161,7 +157,6 @@ export function MessageThread({
         />
       )}
 
-      {/* Contract Modal */}
       {showContractModal && projectId && (
         <ContractModal
           projectId={projectId}

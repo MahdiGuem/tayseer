@@ -19,7 +19,7 @@ export function MessageInput({ value, onChange, onSend, disabled }: MessageInput
   }
 
   return (
-    <div className="p-3 border-t border-white/5 bg-black/20">
+    <div className="p-3 border-t border-white/5 bg-black/20 shrink-0">
       <div className="flex items-end gap-2">
         {/* Input Field - Compact */}
         <div className="flex-1 relative">

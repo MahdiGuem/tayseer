@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getClients, createClient, getClientByToken, assignClientToProject } from '@/app/actions/client'
+import { getClients, createClient, getClientByToken, assignClientToProject, getClientByName } from '@/app/actions/client'
 
 export type ClientWithRelations = Awaited<ReturnType<typeof getClients>>[number]
 export type ClientWithProject = Awaited<ReturnType<typeof getClientByToken>>
@@ -42,8 +42,18 @@ export function useCreateClient() {
       setLoading(false)
     }
   }
+
+  const findByName = async (name: string) => {
+    setLoading(true)
+    try {
+      const client = await getClientByName(name)
+      return client
+    } finally {
+      setLoading(false)
+    }
+  }
   
-  return { create, loading }
+  return { create, loading, findByName }
 }
 
 export function useAssignClient() {

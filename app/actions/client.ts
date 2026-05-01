@@ -57,6 +57,19 @@ export async function createClient(data: { name: string; email?: string; platfor
   }
 }
 
+export async function getClientByName(name: string) {
+  const normalizedName = name.trim().toLowerCase()
+  const clients = await prisma.client.findMany({
+    where: {
+      name: {
+        equals: normalizedName,
+        mode: 'insensitive'
+      }
+    }
+  })
+  return clients.length > 0 ? clients[0] : null
+}
+
 export async function updateClient(id: string, data: { name?: string; email?: string; platform?: string }) {
   const updateData: Record<string, unknown> = {}
   if (data.name !== undefined) updateData.name = data.name
