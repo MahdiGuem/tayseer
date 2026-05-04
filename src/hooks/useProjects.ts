@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getProjects, createProject, updateProject, deleteProject } from '@/app/actions/project'
+import { useToast } from '@/src/hooks/useToast'
 
 export type ProjectWithRelations = Awaited<ReturnType<typeof getProjects>>[number]
 
@@ -31,12 +32,17 @@ export function useProjects() {
 
 export function useCreateProject() {
   const [loading, setLoading] = useState(false)
+  const { addToast } = useToast()
   
   const create = async (data: { title: string; clientIds: string[]; taxRate?: number; currency?: string }) => {
     setLoading(true)
     try {
       const project = await createProject(data)
+      addToast(`Project "${data.title}" created`, "success")
       return project
+    } catch (e) {
+      addToast(String(e), "error")
+      throw e
     } finally {
       setLoading(false)
     }
@@ -47,6 +53,7 @@ export function useCreateProject() {
 
 export function useUpdateProject() {
   const [loading, setLoading] = useState(false)
+  const { addToast } = useToast()
   
   const update = async (id: string, data: { 
     title?: string
@@ -60,7 +67,11 @@ export function useUpdateProject() {
     setLoading(true)
     try {
       const project = await updateProject(id, data as any)
+      addToast("Project updated successfully", "success")
       return project
+    } catch (e) {
+      addToast(String(e), "error")
+      throw e
     } finally {
       setLoading(false)
     }
@@ -71,11 +82,16 @@ export function useUpdateProject() {
 
 export function useDeleteProject() {
   const [loading, setLoading] = useState(false)
+  const { addToast } = useToast()
   
   const remove = async (id: string) => {
     setLoading(true)
     try {
       await deleteProject(id)
+      addToast("Project deleted successfully", "success")
+    } catch (e) {
+      addToast(String(e), "error")
+      throw e
     } finally {
       setLoading(false)
     }

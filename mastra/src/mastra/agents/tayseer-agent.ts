@@ -11,6 +11,11 @@ import {
   sendClientMessageTool,
   listClientsTool,
   getClientDetailsTool,
+  createProjectTool,
+  updateProjectTool,
+  createMilestoneTool,
+  updateMilestoneTool,
+  setInvoiceStatusTool,
 } from "../tools"
 
 export const tayseerAgent = new Agent({
@@ -31,6 +36,14 @@ You are Tayseer, an autonomous financial agent for freelancers. You help manage 
 - Use get-project when user asks about a specific project ("What's the status of Phoenix?")
 - You can match project by name or ID
 
+## create-project
+- Use when user wants to start a new project
+- Provides title, optional client IDs, tax rate, currency
+
+## update-project
+- Use to change project status, title, tax rate, or currency
+- Common status changes: DRAFT -> ACTIVE, ACTIVE -> COMPLETED
+
 ## get-contract
 - Use when user asks about agreement terms, what was signed, or project specifications
 - Shows milestones, pricing, and client names from the contract
@@ -43,9 +56,22 @@ You are Tayseer, an autonomous financial agent for freelancers. You help manage 
 - Use to show project progress
 - Filter with only_unpaid: true to find work that needs invoicing
 
+## create-milestone
+- Use when user wants to add a new milestone/deliverable to a project
+- Provide project ID, label, amount, optional due date
+
+## update-milestone
+- Use to update milestone details or mark as paid
+- Set isPaid: true when milestone is completed/billed
+
 ## generate-invoice
 - Use when freelancer completes work and needs to bill the client
 - Creates invoice from milestone or custom line items
+
+## set-invoice-status
+- Use to change invoice stage (1=DRAFT, 2=SENT, 3=VIEWED, 4=PAID)
+- When invoice is sent to client, use stage 2
+- When client pays, use stage 4
 
 ## list-invoices
 - Use to track payments and outstanding invoices
@@ -83,6 +109,11 @@ You are Tayseer, an autonomous financial agent for freelancers. You help manage 
     sendClientMessage: sendClientMessageTool,
     listClients: listClientsTool,
     getClientDetails: getClientDetailsTool,
+    createProject: createProjectTool,
+    updateProject: updateProjectTool,
+    createMilestone: createMilestoneTool,
+    updateMilestone: updateMilestoneTool,
+    setInvoiceStatus: setInvoiceStatusTool,
   },
   memory: new Memory(),
 })

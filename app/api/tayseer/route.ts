@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getProjects, getProject } from '@/app/actions/project'
-import { getMilestones, createMilestone } from '@/app/actions/milestone'
-import { getInvoices, createInvoice } from '@/app/actions/invoice'
+import { getProjects, getProject, createProject, updateProject, deleteProject } from '@/app/actions/project'
+import { getMilestones, createMilestone, updateMilestone, deleteMilestone } from '@/app/actions/milestone'
+import { getInvoices, createInvoice, updateInvoiceStage, deleteInvoice } from '@/app/actions/invoice'
 import { createMessage, getMessages } from '@/app/actions/message'
 
 const TAYSEER_ACTIONS = {
@@ -65,7 +65,59 @@ const TAYSEER_ACTIONS = {
         clientCount: p.projectClients?.length ?? 0
       }))
     }
-  }
+  },
+
+  // Create project
+  createProject: async (body: { title: string; clientIds?: string[]; taxRate?: number; currency?: string; status?: string }) => {
+    const project = await createProject({
+      title: body.title,
+      clientIds: body.clientIds ?? [],
+      taxRate: body.taxRate,
+      currency: body.currency
+    })
+    return { project, success: true }
+  },
+
+  // Update project
+  updateProject: async (body: { id: string; title?: string; taxRate?: number; currency?: string; status?: string }) => {
+    const project = await updateProject(body.id, {
+      title: body.title,
+      taxRate: body.taxRate,
+      currency: body.currency,
+      status: body.status
+    })
+    return { project, success: true }
+  },
+
+  // Delete project
+  deleteProject: async (body: { id: string }) => {
+    await deleteProject(body.id)
+    return { success: true }
+  },
+
+  // Update milestone
+  updateMilestone: async (body: { id: string; label?: string; amount?: number; dueDate?: string; isPaid?: boolean; order?: number }) => {
+    const milestone = await updateMilestone(body.id, body)
+    return { milestone, success: true }
+  },
+
+  // Delete milestone
+  deleteMilestone: async (body: { id: string }) => {
+    await deleteMilestone(body.id)
+    return { success: true }
+  },
+
+  // Update invoice stage
+  updateInvoiceStage: async (body: { id: string; stage: number }) => {
+    const invoice = await updateInvoiceStage(body.id, body.stage)
+    return { invoice, success: true }
+  },
+
+  // Delete invoice
+  deleteInvoice: async (body: { id: string }) => {
+    await deleteInvoice(body.id)
+    return { success: true }
+  },
 } as const
 
 type ActionName = keyof typeof TAYSEER_ACTIONS

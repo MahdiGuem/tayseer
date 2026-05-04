@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { createInvoice, updateInvoiceStage, deleteInvoice } from '@/app/actions/invoice'
+import { useToast } from '@/src/hooks/useToast'
 
 export function useCreateInvoice() {
   const [loading, setLoading] = useState(false)
+  const { addToast } = useToast()
   
   const create = async (projectId: string, data: {
     items: { description: string; amount: number }[]
@@ -14,7 +16,11 @@ export function useCreateInvoice() {
     setLoading(true)
     try {
       const invoice = await createInvoice(projectId, data)
+      addToast("Invoice created successfully", "success")
       return invoice
+    } catch (e) {
+      addToast(String(e), "error")
+      throw e
     } finally {
       setLoading(false)
     }
@@ -25,12 +31,17 @@ export function useCreateInvoice() {
 
 export function useUpdateInvoiceStage() {
   const [loading, setLoading] = useState(false)
+  const { addToast } = useToast()
   
   const updateStage = async (id: string, stage: number) => {
     setLoading(true)
     try {
       const invoice = await updateInvoiceStage(id, stage)
+      addToast("Invoice stage updated", "success")
       return invoice
+    } catch (e) {
+      addToast(String(e), "error")
+      throw e
     } finally {
       setLoading(false)
     }
@@ -41,11 +52,16 @@ export function useUpdateInvoiceStage() {
 
 export function useDeleteInvoice() {
   const [loading, setLoading] = useState(false)
+  const { addToast } = useToast()
   
   const remove = async (id: string) => {
     setLoading(true)
     try {
       await deleteInvoice(id)
+      addToast("Invoice deleted successfully", "success")
+    } catch (e) {
+      addToast(String(e), "error")
+      throw e
     } finally {
       setLoading(false)
     }
